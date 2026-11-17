@@ -159,7 +159,8 @@ function appendInvText(list){
   toast(list.length+' persona(s) cargada(s). Revísalas y pulsa "Añadir invitados".');
 }
 const waLink=(p,text)=>'https://wa.me/'+(p.phone||'')+'?text='+encodeURIComponent(text);
-const mailLink=(p,subj,text)=>'mailto:'+encodeURIComponent(p.email||'')+'?subject='+encodeURIComponent(subj)+'&body='+encodeURIComponent(text);
+const mailLink=(p,subj,text)=>'mailto:'+(p.email||'')+'?subject='+encodeURIComponent(subj)+'&body='+encodeURIComponent(text);
+const gmailLink=(p,subj,text)=>'https://mail.google.com/mail/?view=cm&fs=1&to='+encodeURIComponent(p.email||'')+'&su='+encodeURIComponent(subj)+'&body='+encodeURIComponent(text);
 /* reloj circular */
 const RC=326.73;
 function clockOf(r){
@@ -209,7 +210,7 @@ function radar(items){
 let user=null,TIMER=null,RT=null,POLL=null,TOT=null,PJ=null;
 function cleanup(){clearInterval(TIMER);clearInterval(POLL);clearInterval(TOT);if(RT){sb.removeChannel(RT);RT=null}}
 function nav(){
-  const play=location.hash.startsWith('#/play');
+  const play=location.hash.startsWith('#/play')||/[?&](sala|i)=/.test(location.search);
   $('#nav').innerHTML=(play?'':user?`<button class="btn ghost sm" data-act="dash">Panel</button><button class="btn ghost sm" data-act="logout">Salir</button>`:`<button class="btn ghost sm" data-act="home">Entrar a sala</button><button class="btn ghost sm" data-act="login">Docentes</button>`)+`<button class="btn ghost sm" data-act="theme" aria-label="Cambiar tema claro u oscuro">${document.documentElement.dataset.theme==='dark'?'☀️':'🌙'}</button>`;
 }
 function go(h){if(location.hash===h)route();else location.hash=h}
@@ -235,7 +236,7 @@ window.addEventListener('hashchange',route);
 
 /* ================= INICIO ================= */
 async function homeView(){
-  const sp=new URLSearchParams(location.search),q=sp.get('sala')||'',inv=sp.get('i');
+  const sp=new URLSearchParams(location.search),q=sp.get('sala')||'',inv=sp.get('i'),part=!!q;
   if(inv){
     history.replaceState(null,'',location.pathname);
     app.innerHTML='<p class="mute" role="status">Entrando…</p>';
@@ -249,9 +250,9 @@ async function homeView(){
     <label for="jn">Tu nombre (opcional)</label><input id="jn" maxlength="40" autocomplete="name">
     <label for="jt">Equipo (si tu docente lo pide)</label><input id="jt" maxlength="30">
     <div class="row" style="margin-top:10px"><button class="btn" id="jb">Entrar</button></div><p id="je" class="small" style="color:var(--bad)" role="alert"></p></form></section>
-  <section class="card"><h2>Soy docente o administrador</h2><p class="mute">Crea evaluaciones, comparte un código de sala y recibe los resultados en vivo. Con apoyo de IA para preguntas y retroalimentación.</p>
+  ${part?'':`<section class="card"><h2>Soy docente o administrador</h2><p class="mute">Crea evaluaciones, comparte un código de sala y recibe los resultados en vivo. Con apoyo de IA para preguntas y retroalimentación.</p>
     <div class="row"><button class="btn" data-act="login">Entrar o crear cuenta</button></div>
-    <p class="small mute" style="margin-top:10px">🎁 Prueba gratis de 7 días, sin tarjeta. En la prueba funcionan las herramientas esenciales (3 evaluaciones, 30 participantes por sala, 50 llamadas de IA).</p></section></div>`;
+    <p class="small mute" style="margin-top:10px">🎁 Prueba gratis de 7 días, sin tarjeta. En la prueba funcionan las herramientas esenciales (3 evaluaciones, 30 participantes por sala, 50 llamadas de IA).</p></section>`}</div>`;
   $('#jf').onsubmit=async e=>{e.preventDefault();const b=$('#jb');b.disabled=true;$('#je').textContent='';
     try{const r=await api('join',{code:$('#jc').value,name:$('#jn').value,team:$('#jt').value});
       sessionStorage.setItem('bj_s',JSON.stringify({token:r.token,meta:r}));go('#/play')}
@@ -575,7 +576,7 @@ function ctlHtml(){
 function tickPanel(){if(RS?.room)setRing('cring',clockOf(RS.room))}
 function sendBox(){
   const S=RS.send;if(!S)return'';
-  if(!S.ch)return`<div class="fb story" style="margin:10px 0"><b>Enviar invitaciones</b><p class="small">Se abrirá tu correo o WhatsApp con el mensaje listo, una persona tras otra. Tú solo pulsas enviar en cada una.</p>
+  if(!S.ch)return`<div class="fb story" style="margin:10px 0"><b>Enviar invitaciones</b><p class="small">Se abrirá una pestaña nueva por persona con el mensaje listo (Gmail o WhatsApp Web/app). Tú solo pulsas enviar en cada una; el panel no se mueve.</p>
     <label class="row" style="color:var(--ink);font-weight:500"><input type="checkbox" id="spend" ${S.pend?'checked':''}> Solo a quienes aún no han entrado</label>
     <div class="row" style="margin-top:6px"><button class="btn sm" data-act="sendch" data-v="mail">✉️ Por correo</button><button class="btn sm" data-act="sendch" data-v="wa">💬 Por WhatsApp</button><button class="btn sec sm" data-act="sendx">Cancelar</button></div></div>`;
   const n=S.ids.length,p=RS.ps.find(x=>x.id===S.ids[S.i]),ch=S.ch==='mail'?'correo':'WhatsApp';
@@ -590,7 +591,7 @@ function inviteHtml(){
   const {ps,at,ev,room}=RS,inv=ps.filter(p=>p.invited).sort((a,b)=>(a.name||a.email||'').localeCompare(b.name||b.email||''));
   const cnt={t:0,e:0,n:0};inv.forEach(p=>{const s=pstatus(p,at,room).t;if(s==='Terminó')cnt.t++;else if(s==='No ha entrado')cnt.n++;else cnt.e++});
   const rows=inv.map(p=>{const s=pstatus(p,at,room),l=invLink(p.token),mt=inviteMsg(p,ev.title,l);
-    return`<tr><td>${esc(p.name||'—')}</td><td>${esc(p.email||'')}${p.email&&p.phone?'<br>':''}${p.phone?'+'+esc(p.phone):''}${!p.email&&!p.phone?'—':''}</td><td><span class="chip ${s.c}">${s.t}</span></td><td class="row"><button class="btn sec sm" data-act="copy" data-v="${esc(l)}">Copiar</button>${p.email?`<a class="btn sec sm" style="text-decoration:none" href="${esc(mailLink(p,ev.title,mt))}">Correo</a>`:''}<a class="btn sec sm" style="text-decoration:none" target="_blank" rel="noopener" href="${esc(waLink(p,mt))}">WhatsApp</a>${s.t==='No ha entrado'?`<button class="btn bad sm" data-act="rminv" data-id="${p.id}" aria-label="Quitar invitado">✕</button>`:''}</td></tr>`}).join('');
+    return`<tr><td>${esc(p.name||'—')}</td><td>${esc(p.email||'')}${p.email&&p.phone?'<br>':''}${p.phone?'+'+esc(p.phone):''}${!p.email&&!p.phone?'—':''}</td><td><span class="chip ${s.c}">${s.t}</span></td><td class="row"><button class="btn sec sm" data-act="copy" data-v="${esc(l)}">Copiar</button>${p.email?`<a class="btn sec sm" style="text-decoration:none" target="_blank" rel="noopener" href="${esc(gmailLink(p,ev.title,mt))}">Gmail</a><a class="btn sec sm" style="text-decoration:none" href="${esc(mailLink(p,ev.title,mt))}">Correo</a>`:''}<a class="btn sec sm" style="text-decoration:none" target="_blank" rel="noopener" href="${esc(waLink(p,mt))}">WhatsApp</a>${s.t==='No ha entrado'?`<button class="btn bad sm" data-act="rminv" data-id="${p.id}" aria-label="Quitar invitado">✕</button>`:''}</td></tr>`}).join('');
   return`<hr style="border:0;border-top:1px solid var(--line);margin:12px 0"><h3>Invitados</h3>
    <div class="grid g2"><div><label for="invfile">1 · Desde una hoja de cálculo de tu equipo (Excel, CSV u ODS)</label><input type="file" id="invfile" accept=".xlsx,.xls,.ods,.csv,.txt,text/csv,text/plain"></div>
    <div><label for="invurl">2 · Desde Google Drive (pega el enlace compartido)</label><div class="row" style="flex-wrap:nowrap"><input id="invurl" type="url" placeholder="https://docs.google.com/spreadsheets/d/…"><button class="btn sec sm" data-act="drive">Cargar</button></div><p class="small mute" style="margin:3px 0 0">Comparte la hoja como “Cualquier persona con el enlace”.</p></div></div>
@@ -714,7 +715,7 @@ document.addEventListener('click',async e=>{
     S.ids=RS.ps.filter(p=>p.invited&&(!S.pend||(!p.started_at&&!p.finished_at))&&(S.ch!=='mail'||p.email)).sort((x,y)=>(x.name||'').localeCompare(y.name||'')).map(p=>p.id);
     if(!S.ids.length){RS.send=null;toast(S.ch==='mail'?'No hay invitados pendientes con correo.':'No hay invitados pendientes.')}drawRes()}
   else if(a==='sendone'){const S=RS.send,p=RS.ps.find(x=>x.id===S.ids[S.i]);if(p){const mt=inviteMsg(p,RS.ev.title,invLink(p.token));
-    if(S.ch==='mail')location.href=mailLink(p,RS.ev.title,mt);else window.open(waLink(p,mt),'_blank','noopener');S.sent++}S.i++;drawRes()}
+    window.open(S.ch==='mail'?gmailLink(p,RS.ev.title,mt):waLink(p,mt),'_blank','noopener');S.sent++}S.i++;drawRes()}
   else if(a==='sendskip'){RS.send.i++;drawRes()}
   else if(a==='sendx'){RS.send=null;drawRes()}
   else if(a==='drive'){const u=$('#invurl').value.trim();if(!u)return toast('Pega el enlace de la hoja.');t.disabled=true;
