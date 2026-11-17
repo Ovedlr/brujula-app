@@ -71,17 +71,18 @@ footer{text-align:center;padding:8px 14px 18px;font-size:11px}footer a{color:var
   <button class="brand" data-act="home" aria-label="Inicio">🧭 <span id="appname">Brújula</span></button>
   <nav id="nav"></nav>
 </header>
-<main id="app" tabindex="-1"></main>
+<main id="app" tabindex="-1"><p class="mute" role="status" style="text-align:center;padding:40px 0">Cargando Brújula…</p></main>
 <footer class="noprint"><a href="#/legal">Aviso de privacidad y términos de uso</a></footer>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4"></script>
 <script>
 /* ================= CONFIG ================= */
 const CFG={URL:'https://bclbbulqhffnieysahqr.supabase.co',KEY:'sb_publishable_WWmySdsKUERHqv_3DL0EfQ_kFTZgto9',APP:'Brújula',CONTACT:'',
-  /* Datos del responsable para el aviso legal: complétalos */ OWNER:'',NIT:98643481'',EMAIL:franklr76@gmail.com'',CITY:Bello, Antioquia'',UPDATED:'16 de noviembre de 2026'};
+  /* Datos del responsable para el aviso legal: complétalos */ OWNER:'',NIT:'',EMAIL:'',CITY:'',UPDATED:'16 de noviembre de 2026'};
 const FN=CFG.URL+'/functions/v1/api';
 document.getElementById('appname').textContent=CFG.APP;
-const sb=window.supabase.createClient(CFG.URL,CFG.KEY);
+let sb=null,sbReady=false;
+const SUPA_JS='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',QR_JS='https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4';
+/* Carga librerías sin bloquear la página: el participante ve su formulario aunque la red sea lenta */
+function lib(src){return new Promise((res,rej)=>{if(document.querySelector('script[src="'+src+'"]'))return res();const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=()=>rej(new Error('No se pudo cargar '+src));document.head.appendChild(s)})}
 
 /* ================= UTILIDADES ================= */
 const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
@@ -213,10 +214,14 @@ function nav(){
 }
 function go(h){if(location.hash===h)route();else location.hash=h}
 async function route(){
-  cleanup();nav();
+  cleanup();
   const h=location.hash||'#/';
-  const {data}=await sb.auth.getSession();user=data.session?.user||null;nav();
+  const needsSb=h.startsWith('#/t')||h==='#/login';
+  if(sbReady){const {data}=await sb.auth.getSession();user=data.session?.user||null}
+  nav();
   if(h.startsWith('#/play'))return playRoute();
+  if(h.startsWith('#/legal'))return legalView();
+  if(needsSb&&!sbReady)return; // se dibuja cuando Supabase termine de cargar
   if(h.startsWith('#/t')){if(!user)return authView();
     if(h.startsWith('#/t/eval/'))return editorView(h.split('/')[3]);
     if(h.startsWith('#/t/res/'))return resultsView(h.split('/')[3]);
@@ -224,7 +229,6 @@ async function route(){
     if(h.startsWith('#/t/proj/'))return projView(h.split('/')[3]);
     return dashView()}
   if(h==='#/login')return authView();
-  if(h==='#/legal')return legalView();
   return homeView();
 }
 window.addEventListener('hashchange',route);
@@ -421,10 +425,11 @@ async function projView(id){
   PJ={room,n:0};const url=link(room.code);
   app.innerHTML=`<div class="row noprint"><a href="#/t/res/${room.id}" class="btn sec sm" style="text-decoration:none">← Panel</a><button class="btn sec sm" data-act="fs">Pantalla completa</button><span class="small mute">Consejo: conecta el PC al proyector o TV, pulsa “Pantalla completa” y deja el panel abierto en otra pestaña.</span></div>
   <section class="card proj"><h1>${esc(ev.title)}</h1>
-   <div class="grid g2" style="align-items:center"><div id="pqr"><div class="mute">Escanea para entrar</div><div class="qr">${qrSvg(url)||'<p class="mute">No se pudo generar el QR. Comparte el enlace.</p>'}</div><div class="code">${esc(room.code)}</div><div class="mute small">${esc(url)}</div></div>
+   <div class="grid g2" style="align-items:center"><div id="pqr"><div class="mute">Escanea para entrar</div><div class="qr" id="qrbox">${qrSvg(url)||'<p class="mute">Cargando QR…</p>'}</div><div class="code">${esc(room.code)}</div><div class="mute small">${esc(url)}</div></div>
    <div>${ringHtml('pring',clockOf(room),true)}<div class="big" id="pc" style="margin-top:8px"></div><div id="pst" class="mute"></div></div></div></section>`;
   const upd=async()=>{const [r,c]=await Promise.all([sb.from('rooms').select('*').eq('id',id).single(),sb.from('participants').select('id',{count:'exact',head:true}).eq('room_id',id)]);
     if(r.data)PJ.room=r.data;PJ.n=c.count??0;paintProj()};
+  if(typeof qrcode!=='function')lib(QR_JS).then(()=>{const b=$('#qrbox');if(b)b.innerHTML=qrSvg(url)||'<p class="mute">Comparte este enlace: '+esc(url)+'</p>'}).catch(()=>{const b=$('#qrbox');if(b)b.innerHTML='<p class="mute">Sin conexión para generar el QR. Comparte este enlace: '+esc(url)+'</p>'});
   await upd();POLL=setInterval(upd,2000);TOT=setInterval(paintProj,1000);
 }
 function paintProj(){
@@ -649,7 +654,7 @@ function askDelete(n){
 
 /* ================= AVISO LEGAL ================= */
 function legalView(){
-  const o=esc(CFG.OWNER||'[Nombre o razón social del responsable]'),nit=esc(CFG.NIT||'[NIT]'),em=esc(CFG.EMAIL||'[correo de contacto]'),city=esc(CFG.CITY||'[ciudad]'),app_=esc(CFG.APP);
+  const o=esc(CFG.OWNER||'[Franky Lóez]'),nit=esc(CFG.NIT||'[98643481]'),em=esc(CFG.EMAIL||'[franklr76@gmail.com]'),city=esc(CFG.CITY||'[Bello, Antioquia]'),app_=esc(CFG.APP);
   app.innerHTML=`<section class="card legal"><h1>Aviso de privacidad y términos de uso de ${app_}</h1><p class="small mute">Última actualización: ${esc(CFG.UPDATED)}</p>
   <h2>1. Quién es quién</h2>
   <p><b>${app_}</b> es una plataforma de evaluaciones interactivas operada por ${o}, ${nit}, con domicilio en ${city}, Colombia. Contacto: ${em}.</p>
@@ -738,6 +743,8 @@ document.addEventListener('change',e=>{
   if(t.dataset?.act==='layer'){collect();drawEditor()}
 });
 route();
+lib(SUPA_JS).then(()=>{sb=window.supabase.createClient(CFG.URL,CFG.KEY);sbReady=true;const h=location.hash;return(h.startsWith('#/t')||h==='#/login')?route():nav()})
+  .catch(()=>{if(/#\/t|#\/login/.test(location.hash))$('#app').innerHTML='<p class="mute" role="alert" style="text-align:center">No se pudo cargar Brújula. Revisa tu conexión y recarga la página.</p>'});
 </script>
 </body>
 </html>
