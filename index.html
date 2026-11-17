@@ -44,6 +44,11 @@ table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:6px 7px;b
 .hero{text-align:center;padding:18px 8px}.hero h1{font-size:24px;background:linear-gradient(90deg,var(--p),var(--p2));-webkit-background-clip:text;background-clip:text;color:transparent}
 .big{font-size:34px;font-weight:800;background:linear-gradient(90deg,var(--p),var(--p2));-webkit-background-clip:text;background-clip:text;color:transparent}
 .timer{font-variant-numeric:tabular-nums;font-weight:700}
+.cd{font-variant-numeric:tabular-nums;font-weight:800;font-size:44px;line-height:1.1;background:linear-gradient(90deg,var(--p),var(--p2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.proj{text-align:center;padding:10px}.proj .code{font-size:64px;font-weight:800;letter-spacing:8px}.proj .cd{font-size:110px}.proj .big{font-size:48px}
+.qr svg{width:min(70vw,420px);height:auto;border-radius:12px;box-shadow:var(--sh)}
+.seg{display:flex;gap:8px;flex-wrap:wrap}.seg label{flex:1;min-width:200px;margin:0;padding:10px;border:2px solid var(--line);border-radius:12px;cursor:pointer;color:var(--ink);font-weight:500}
+.seg label:has(input:checked){border-color:var(--p2);background:var(--chip)}.seg input{position:absolute;opacity:0}
 @media(prefers-reduced-motion:no-preference){.card{transition:transform .15s}.card:hover{transform:translateY(-1px)}}
 @media print{header,.noprint{display:none!important}body{background:#fff}}
 </style>
@@ -55,6 +60,7 @@ table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:6px 7px;b
 </header>
 <main id="app" tabindex="-1"></main>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4"></script>
 <script>
 /* ================= CONFIG ================= */
 const CFG={URL:'https://bclbbulqhffnieysahqr.supabase.co',KEY:'sb_publishable_WWmySdsKUERHqv_3DL0EfQ_kFTZgto9',APP:'Brújula',CONTACT:''};
@@ -66,7 +72,7 @@ const sb=window.supabase.createClient(CFG.URL,CFG.KEY);
 const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const app=$('#app');
-const ERR={ROOM_NOT_FOUND:'No encontramos esa sala. Revisa el código.',ROOM_CLOSED:'La sala está cerrada o expiró.',ROOM_FULL:'La sala está llena.',OWNER_TRIAL_EXPIRED:'Esta sala ya no está disponible (el docente debe activar su plan).',BAD_TOKEN:'Tu sesión no es válida. Entra de nuevo con el código.',ALREADY:'Esa pregunta ya fue respondida.',AUTH:'Inicia sesión de nuevo.',NOT_OWNER:'No tienes permiso.',NO_TOPIC:'Escribe un tema.',TRIAL_EXPIRED:'Tu prueba de 7 días terminó. Activa un plan para crear contenido nuevo.',TRIAL_LIMIT_EVALS:'Límite de la prueba: 3 evaluaciones.',TRIAL_FEATURE:'Los casos con decisión se activan con un plan de pago.',SERVER_ERROR:'Error del servidor. Intenta de nuevo.',SAVE_FAILED:'No se pudo guardar. Intenta de nuevo.'};
+const ERR={ROOM_NOT_FOUND:'No encontramos esa sala. Revisa el código.',ROOM_CLOSED:'La sala está cerrada o expiró.',ROOM_FULL:'La sala está llena.',OWNER_TRIAL_EXPIRED:'Esta sala ya no está disponible (el docente debe activar su plan).',BAD_TOKEN:'Tu sesión no es válida. Entra de nuevo con el código.',ALREADY:'Esa pregunta ya fue respondida.',AUTH:'Inicia sesión de nuevo.',NOT_OWNER:'No tienes permiso.',NO_TOPIC:'Escribe un tema.',TRIAL_EXPIRED:'Tu prueba de 7 días terminó. Activa un plan para crear contenido nuevo.',TRIAL_LIMIT_EVALS:'Límite de la prueba: 3 evaluaciones.',TRIAL_FEATURE:'Los casos con decisión se activan con un plan de pago.',SERVER_ERROR:'Error del servidor. Intenta de nuevo.',SAVE_FAILED:'No se pudo guardar. Intenta de nuevo.',INVITE_ONLY:'Esta sala es solo por invitación. Usa tu enlace personal.',BAD_INVITE:'Tu enlace de invitación no es válido.',TIME_UP:'Se acabó el tiempo.',NOT_STARTED:'La evaluación aún no inicia.',CANNOT_START:'No se puede iniciar esta sala.',NOT_INVITE_ROOM:'Esta sala no es de invitados.',BAD_MODE:'Modo de sala no válido.'};
 const msg=e=>{const m=String(e?.message||e);for(const k in ERR)if(m.includes(k))return ERR[k];if(/Database error saving new user/i.test(m))return 'Ya existe una cuenta con ese correo (o una variante).';return m};
 function toast(t){const d=document.createElement('div');d.className='toast';d.setAttribute('role','status');d.textContent=t;document.body.appendChild(d);setTimeout(()=>d.remove(),2600)}
 async function api(action,body={},auth=false){
@@ -78,6 +84,34 @@ async function api(action,body={},auth=false){
   return j;
 }
 const fmtD=d=>new Date(d).toLocaleString('es-CO',{dateStyle:'short',timeStyle:'short'});
+const MODE={qr:'QR proyectado',link:'Enlace',invite:'Invitados'};
+const mmss=s=>{s=Math.max(0,Math.round(s));return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')};
+const invLink=t=>location.origin+location.pathname+'?i='+t;
+const inviteMsg=(p,title,l)=>`Hola ${p.name||''}, te invitamos a responder la evaluación "${title}". Este es tu enlace personal (no lo compartas): ${l}`;
+async function copyText(t){try{await navigator.clipboard.writeText(t);toast('Copiado')}catch{prompt('Copia el texto:',t)}}
+function qrSvg(text){
+  try{if(typeof qrcode!=='function')return'';const q=qrcode(0,'M');q.addData(text);q.make();const n=q.getModuleCount();let d='';
+    for(let r=0;r<n;r++)for(let c=0;c<n;c++)if(q.isDark(r,c))d+=`M${c+4},${r+4}h1v1h-1z`;
+    return`<svg viewBox="0 0 ${n+8} ${n+8}" role="img" aria-label="Código QR de la sala" shape-rendering="crispEdges"><rect width="100%" height="100%" fill="#fff"/><path d="${d}" fill="#000"/></svg>`}
+  catch{return''}
+}
+function parseInvites(txt){
+  const out=[],seen=new Set(),em=/[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+/;
+  String(txt||'').split(/\r?\n/).forEach(line=>{
+    line=line.trim();if(!line||/^(nombre|name)\b.*(correo|email|mail)/i.test(line))return;
+    const m=line.match(em);let email='',name='';
+    if(m){email=m[0].toLowerCase();name=line.replace(m[0],'')}else name=line;
+    name=name.replace(/[\t;,"]+/g,' ').replace(/\s+/g,' ').trim();
+    if(!name&&email)name=email.split('@')[0];
+    const key=email||name.toLowerCase();if(!key||seen.has(key))return;seen.add(key);
+    out.push({name:name.slice(0,60),email:email.slice(0,120)});
+  });
+  return out;
+}
+function downloadCsv(name,rows){
+  const csv='\ufeff'+rows.map(r=>r.map(csvCell).join(',')).join('\r\n');
+  const u=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));const l=document.createElement('a');l.href=u;l.download=name;l.click();setTimeout(()=>URL.revokeObjectURL(u),2000);
+}
 const uid=()=>crypto.randomUUID();
 const link=code=>location.origin+location.pathname+'?sala='+code;
 
@@ -97,8 +131,8 @@ function radar(items){
 }
 
 /* ================= NAVEGACIÓN ================= */
-let user=null,TIMER=null,RT=null,POLL=null;
-function cleanup(){clearInterval(TIMER);clearInterval(POLL);if(RT){sb.removeChannel(RT);RT=null}}
+let user=null,TIMER=null,RT=null,POLL=null,TOT=null,PJ=null;
+function cleanup(){clearInterval(TIMER);clearInterval(POLL);clearInterval(TOT);if(RT){sb.removeChannel(RT);RT=null}}
 function nav(){
   $('#nav').innerHTML=(user?`<button class="btn ghost sm" data-act="dash">Panel</button><button class="btn ghost sm" data-act="logout">Salir</button>`:`<button class="btn ghost sm" data-act="home">Entrar a sala</button><button class="btn ghost sm" data-act="login">Docentes</button>`)+`<button class="btn ghost sm" data-act="theme" aria-label="Cambiar tema claro u oscuro">${document.documentElement.dataset.theme==='dark'?'☀️':'🌙'}</button>`;
 }
@@ -111,6 +145,8 @@ async function route(){
   if(h.startsWith('#/t')){if(!user)return authView();
     if(h.startsWith('#/t/eval/'))return editorView(h.split('/')[3]);
     if(h.startsWith('#/t/res/'))return resultsView(h.split('/')[3]);
+    if(h.startsWith('#/t/new/'))return newRoomView(h.split('/')[3]);
+    if(h.startsWith('#/t/proj/'))return projView(h.split('/')[3]);
     return dashView()}
   if(h==='#/login')return authView();
   return homeView();
@@ -118,8 +154,15 @@ async function route(){
 window.addEventListener('hashchange',route);
 
 /* ================= INICIO ================= */
-function homeView(){
-  const q=new URLSearchParams(location.search).get('sala')||'';
+async function homeView(){
+  const sp=new URLSearchParams(location.search),q=sp.get('sala')||'',inv=sp.get('i');
+  if(inv){
+    history.replaceState(null,'',location.pathname);
+    app.innerHTML='<p class="mute" role="status">Entrando…</p>';
+    try{const r=await api('join',{invite:inv});sessionStorage.setItem('bj_s',JSON.stringify({token:r.token,meta:r}));go('#/play')}
+    catch(x){app.innerHTML=`<section class="card"><p style="color:var(--bad)" role="alert">${esc(msg(x))}</p><button class="btn" data-act="home">Ir al inicio</button></section>`}
+    return;
+  }
   app.innerHTML=`<div class="hero"><h1>Evalúa con rumbo, no solo con puntos</h1><p class="mute">Casos con decisiones · confianza calibrada · pistas socráticas con IA · mapa de competencias · retos en equipo · misiones narrativas</p></div>
   <div class="grid g2"><section class="card"><h2>Soy participante</h2>
     <form id="jf"><label for="jc">Código de sala</label><input id="jc" maxlength="6" autocomplete="off" value="${esc(q.toUpperCase())}" placeholder="ABC234" style="text-transform:uppercase;letter-spacing:3px;font-weight:700" required>
@@ -144,7 +187,7 @@ function playRoute(){
   if(P.started)return loadQ();
   const m=P.meta,e=m.evaluation,L=e.layers||{};
   const tags=[L.calibrated&&'Confianza calibrada',L.socratic&&'Pistas socráticas',L.competencies&&'Mapa de competencias',L.narrative&&'Misión narrativa',L.cases&&'Casos con decisión',L.team&&'Equipo'].filter(Boolean);
-  app.innerHTML=`<section class="card"><span class="chip">Sala ${esc(m.code)}</span><h1>${esc(e.story?.title||e.title)}</h1>
+  app.innerHTML=`<section class="card"><span class="chip">Sala ${esc(m.code)}</span><h1>${esc(e.story?.title||e.title)}</h1>${m.mode==='invite'&&m.name?`<p>Hola, <b>${esc(m.name)}</b>.</p>`:''}
    ${e.story?.intro?`<div class="fb story">${esc(e.story.intro)}</div>`:''}${e.description?`<p>${esc(e.description)}</p>`:''}
    <p class="small mute">${m.total} preguntas${e.rules?.timePerQuestion?` · ${e.rules.timePerQuestion}s por pregunta`:''}</p>
    <div class="row">${tags.map(t=>`<span class="chip">${esc(t)}</span>`).join('')}</div>
@@ -155,8 +198,25 @@ function playRoute(){
 async function loadQ(){
   clearInterval(TIMER);
   app.innerHTML='<p class="mute" role="status">Cargando…</p>';
-  try{const r=await api('question',{token:P.token});if(r.done){P.result=r.result;return showResult()}P.q=r;showQ()}
+  try{handleQ(await api('question',{token:P.token}))}
   catch(e){app.innerHTML=`<section class="card"><p style="color:var(--bad)" role="alert">${esc(msg(e))}</p><button class="btn" data-act="home">Volver</button></section>`}
+}
+function handleQ(r){
+  clearInterval(POLL);clearInterval(TOT);
+  if(r.waiting)return showLobby(r);
+  P.skew=r.server_now?r.server_now-Date.now():0;
+  if(r.done){P.result=r.result;return showResult()}
+  P.q=r;P.ends=r.ends_at?new Date(r.ends_at).getTime():null;showQ();
+}
+function showLobby(r){
+  app.innerHTML=`<section class="card" style="text-align:center"><h2>Esperando el inicio…</h2><div class="big" id="lb">${r.joined} / ${r.max}</div><p class="mute">La evaluación empieza cuando se complete el cupo o cuando el docente la inicie. No cierres esta página.</p></section>`;
+  POLL=setInterval(async()=>{try{const x=await api('question',{token:P.token});if(!x.waiting)handleQ(x);else{const b=$('#lb');if(b)b.textContent=x.joined+' / '+x.max}}catch(e){if(/ROOM_CLOSED/.test(String(e.message))){clearInterval(POLL);app.innerHTML='<section class="card"><p>La sala se cerró.</p><button class="btn" data-act="home">Volver</button></section>'}}},3000);
+}
+function startTotal(){
+  clearInterval(TOT);if(!P.ends)return;
+  const tick=()=>{const left=(P.ends-(Date.now()+(P.skew||0)))/1000;const el=$('#tt');if(el)el.textContent='⏳ '+mmss(left);
+    if(left<=0){clearInterval(TOT);clearInterval(TIMER);toast('Se acabó el tiempo');setTimeout(loadQ,1200)}};
+  tick();TOT=setInterval(tick,1000);
 }
 function showQ(hint){
   const r=P.q,q=r.question,L=P.meta.evaluation.layers||{},R=P.meta.evaluation.rules||{};
@@ -166,7 +226,7 @@ function showQ(hint){
     :q.options.map((o,i)=>`<label class="opt"><input type="radio" name="o" value="${i}"><span>${esc(o)}</span></label>`).join('');
   const conf=L.calibrated?`<fieldset style="border:0;padding:0;margin:8px 0"><legend class="small mute" style="font-weight:600">¿Qué tan seguro estás?</legend><div class="conf">${[['1','Dudo'],['2','Algo seguro'],['3','Muy seguro']].map(([v,t])=>`<label><input type="radio" name="c" value="${v}"> ${t}</label>`).join('')}</div></fieldset>`:'';
   app.innerHTML=`<section class="card">
-   <div class="row small"><span class="chip">${L.narrative?'Capítulo':'Pregunta'} ${r.index+1} de ${r.total}</span>${q.competency&&L.competencies?`<span class="chip">${esc(q.competency)}</span>`:''}<span class="sp timer" id="tm"></span></div>
+   <div class="row small"><span class="chip">${L.narrative?'Capítulo':'Pregunta'} ${r.index+1} de ${r.total}</span>${q.competency&&L.competencies?`<span class="chip">${esc(q.competency)}</span>`:''}<span class="sp timer" id="tm"></span><span class="chip warn timer" id="tt" ${P.ends?'':'hidden'}></span></div>
    <div class="bar" style="margin:8px 0" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"><i style="width:${pct}%"></i></div>
    ${q.scenario?`<div class="fb story"><b>${L.cases?'Caso':'Contexto'}:</b> ${esc(q.scenario)}</div>`:''}
    <h2 style="margin-top:10px">${esc(q.prompt)}</h2>
@@ -174,6 +234,7 @@ function showQ(hint){
    <form id="qf">${opts}${conf}<div class="row" style="margin-top:8px"><button class="btn" id="sb">Responder</button>${L.socratic?`<span class="small mute">Pistas disponibles: ${Math.max(0,r.maxHints-r.tries)}</span>`:''}</div><p id="qe" class="small" style="color:var(--bad)" role="alert"></p></form></section>`;
   $('#qf').onsubmit=e=>{e.preventDefault();submit(false)};
   if(R.timePerQuestion>0){let t=R.timePerQuestion;const tick=()=>{$('#tm').textContent='⏱ '+t+'s';if(t--<=0){clearInterval(TIMER);submit(true)}};tick();TIMER=setInterval(tick,1000)}
+  startTotal();
 }
 async function submit(timeout){
   const r=P.q,q=r.question,L=P.meta.evaluation.layers||{};
@@ -187,7 +248,7 @@ async function submit(timeout){
     const x=await api('answer',{token:P.token,question_id:q.id,answer:a,confidence:c?+c.value:null,time_ms:Date.now()-P.start});
     if(!x.final){r.tries++;showQ(x.hint);return}
     P.start=0;showFeedback(x);
-  }catch(e){$('#qe').textContent=msg(e);$('#sb').disabled=false}
+  }catch(e){if(/TIME_UP|ROOM_CLOSED/.test(String(e.message))){toast('La evaluación terminó');return loadQ()}$('#qe').textContent=msg(e);$('#sb').disabled=false}
 }
 function showFeedback(x){
   const L=P.meta.evaluation.layers||{};
@@ -200,7 +261,7 @@ function showFeedback(x){
 }
 function showResult(){
   const r=P.result,L=P.meta.evaluation.layers||{};
-  app.innerHTML=`<section class="card"><h1>Resultado final</h1><div class="big">${r.total} <span class="small mute">de ${r.max} (${r.pct}%)</span></div>
+  app.innerHTML=`<section class="card"><h1>Resultado final</h1>${r.timeUp?'<p class="chip warn">Se terminó el tiempo</p>':''}<div class="big">${r.total} <span class="small mute">de ${r.max} (${r.pct}%)</span></div>
    <div class="grid g2"><div>${L.competencies!==false?`<h3>Mapa de competencias</h3>${radar(r.profile)}`:''}</div>
    <div><h3>Tu retroalimentación</h3><div class="fb story">${esc(r.summary)}</div>
    ${L.calibrated?`<p class="small">Calibración: ${r.overconfident} respuesta(s) con mucha seguridad que fallaste; ${r.underconfident} acierto(s) en los que dudabas.</p>`:''}
@@ -241,19 +302,63 @@ async function dashView(){
   app.innerHTML=`${banner}<div class="row"><h1>Mis evaluaciones</h1><button class="btn sp" data-act="neweval" ${ST?.expired?'disabled':''}>+ Nueva evaluación</button></div>
   ${evs.length?evs.map(e=>{const rs=rooms.filter(r=>r.evaluation_id===e.id);return`<section class="card"><div class="row"><div><h2 style="margin:0">${esc(e.title)}</h2><span class="chip">${e.context==='empresa'?'Empresa':'Aula'}</span> ${Object.entries(e.layers||{}).filter(([,v])=>v).map(([k])=>`<span class="chip">${esc(k)}</span>`).join(' ')}</div>
    <div class="row sp"><a class="btn sec sm" href="#/t/eval/${e.id}" style="text-decoration:none">Editar</a><button class="btn sm" data-act="newroom" data-id="${e.id}" ${ST?.expired?'disabled':''}>Crear sala</button><button class="btn bad sm" data-act="deleval" data-id="${e.id}">Borrar</button></div></div>
-   ${rs.length?`<table><tr><th>Código</th><th>Estado</th><th>Vence</th><th></th></tr>${rs.map(r=>{const live=r.status==='open'&&new Date(r.expires_at)>new Date();return`<tr><td><b>${esc(r.code)}</b></td><td><span class="chip ${live?'ok':''}">${live?'Abierta':'Cerrada'}</span>${r.team_mode?' <span class="chip">equipos</span>':''}</td><td>${fmtD(r.expires_at)}</td>
-   <td class="row"><button class="btn sec sm" data-act="copy" data-v="${esc(link(r.code))}">Copiar enlace</button><a class="btn sm" href="#/t/res/${r.id}" style="text-decoration:none">Resultados</a>${live?`<button class="btn sec sm" data-act="close" data-id="${r.id}">Cerrar</button>`:''}</td></tr>`}).join('')}</table>`:'<p class="mute small">Sin salas todavía.</p>'}</section>`}).join(''):'<div class="card mute">Aún no tienes evaluaciones. Crea la primera.</div>'}`;
+   ${rs.length?`<table><tr><th>Código</th><th>Estado</th><th>Vence</th><th></th></tr>${rs.map(r=>{const live=r.status==='open'&&new Date(r.expires_at)>new Date();return`<tr><td><b>${esc(r.code)}</b></td><td><span class="chip ${live?'ok':''}">${live?'Abierta':'Cerrada'}</span>${r.team_mode?' <span class="chip">equipos</span>':''} <span class="chip">${MODE[r.mode]||'Enlace'}</span></td><td>${fmtD(r.expires_at)}</td>
+   <td class="row">${r.mode==='invite'?'':`<button class="btn sec sm" data-act="copy" data-v="${esc(link(r.code))}">Copiar enlace</button>`}<a class="btn sm" href="#/t/res/${r.id}" style="text-decoration:none">Resultados</a>${live?`<button class="btn sec sm" data-act="close" data-id="${r.id}">Cerrar</button>`:''}</td></tr>`}).join('')}</table>`:'<p class="mute small">Sin salas todavía.</p>'}</section>`}).join(''):'<div class="card mute">Aún no tienes evaluaciones. Crea la primera.</div>'}`;
 }
 async function newEval(){
   const {data,error}=await sb.from('evaluations').insert({title:'Nueva evaluación'}).select().single();
   if(error)return toast(msg(error));go('#/t/eval/'+data.id);
 }
-async function newRoom(id){
-  const hours=+prompt('¿Cuántas horas estará abierta la sala?','24');if(!hours)return;
-  const mx=+prompt('Máximo de participantes','30');if(!mx)return;
-  const team=ST?.plan==='pro'&&confirm('¿Activar modo de equipos?');
-  const {data,error}=await sb.rpc('create_room',{p_eval:id,p_max:mx,p_hours:hours,p_team:!!team});
-  if(error)return toast(msg(error));toast('Sala creada: '+data.code);dashView();
+async function newRoomView(evId){
+  const {data:st}=await sb.rpc('my_status');ST=st;const trial=ST?.plan==='trial';
+  app.innerHTML=`<div class="row"><a href="#/t" class="btn sec sm" style="text-decoration:none">← Panel</a><h1 style="margin:0">Crear sala</h1></div>
+  <section class="card"><h2>¿Cómo van a entrar los participantes?</h2><div class="seg" role="radiogroup">
+   <label><input type="radio" name="md" value="qr" checked><b>1 · QR en pantalla</b><br><span class="small mute">Proyectas un QR (estilo Kahoot). Al llenarse el cupo la sala se cierra y arranca la cuenta regresiva.</span></label>
+   <label><input type="radio" name="md" value="link"><b>2 · Enlace manual</b><br><span class="small mute">Pegas el enlace en WhatsApp u otro canal. Al llenarse el cupo arranca el contador en tu panel.</span></label>
+   <label><input type="radio" name="md" value="invite"><b>3 · Lista de invitados</b><br><span class="small mute">Cargas nombres o correos y cada persona recibe su enlace personal. Con seguimiento de quién respondió.</span></label></div>
+  <div class="grid g3"><div id="maxw"><label for="nm">Máximo de participantes</label><input id="nm" type="number" min="1" max="${trial?30:500}" value="30"></div>
+   <div><label for="nh">Horas abierta</label><input id="nh" type="number" min="1" max="720" value="24"></div>
+   <div><label>Tiempo límite (min : seg)</label><div class="row"><input id="tmin" type="number" min="0" max="1440" value="10" style="width:80px" aria-label="Minutos"><b>:</b><input id="tsec" type="number" min="0" max="59" value="0" style="width:80px" aria-label="Segundos"></div><p class="small mute" id="tlh"></p></div></div>
+  ${trial?'':'<label class="row" style="color:var(--ink);font-weight:500"><input type="checkbox" id="ntm"> Modo de equipos</label>'}
+  <div class="row" style="margin-top:12px"><button class="btn" id="mk">Crear sala</button></div></section>`;
+  const sync=()=>{const m=$('input[name=md]:checked').value;$('#maxw').hidden=m==='invite';
+    $('#tlh').textContent='0:00 = sin límite. '+(m==='invite'?'Corre por persona desde que abre su enlace.':'Corre desde que arranca la sala.')};
+  $$('input[name=md]').forEach(i=>i.onchange=sync);sync();
+  $('#mk').onclick=async()=>{
+    const md=$('input[name=md]:checked').value,lim=(+$('#tmin').value||0)*60+(+$('#tsec').value||0);
+    const mx=md==='invite'?(trial?30:500):(+$('#nm').value||30);
+    $('#mk').disabled=true;
+    const {data,error}=await sb.rpc('create_room',{p_eval:evId,p_max:mx,p_hours:+$('#nh').value||24,p_team:!!$('#ntm')?.checked&&md!=='invite',p_mode:md,p_limit:lim});
+    if(error){toast(msg(error));$('#mk').disabled=false;return}
+    go('#/t/res/'+data.id);
+  };
+}
+
+/* ---------- pantalla de proyección (modo QR) ---------- */
+async function projView(id){
+  const {data:room,error}=await sb.from('rooms').select('*').eq('id',id).single();
+  if(error||!room){app.innerHTML='<div class="card">Sala no encontrada.</div>';return}
+  const ev=(await sb.from('evaluations').select('title').eq('id',room.evaluation_id).single()).data||{title:''};
+  PJ={room,n:0};const url=link(room.code);
+  app.innerHTML=`<div class="row noprint"><a href="#/t/res/${room.id}" class="btn sec sm" style="text-decoration:none">← Panel</a><button class="btn sec sm" data-act="fs">Pantalla completa</button></div>
+  <section class="card proj"><h1>${esc(ev.title)}</h1>
+   <div id="pqr"><div class="mute">Escanea para entrar</div><div class="qr">${qrSvg(url)||'<p class="mute">No se pudo generar el QR. Comparte el enlace.</p>'}</div><div class="code">${esc(room.code)}</div><div class="mute small">${esc(url)}</div></div>
+   <div class="big" id="pc" style="margin-top:8px"></div><div id="pst" class="mute"></div><div class="cd" id="pcd"></div></section>`;
+  const upd=async()=>{const [r,c]=await Promise.all([sb.from('rooms').select('*').eq('id',id).single(),sb.from('participants').select('id',{count:'exact',head:true}).eq('room_id',id)]);
+    if(r.data)PJ.room=r.data;PJ.n=c.count??0;paintProj()};
+  await upd();POLL=setInterval(upd,2000);TOT=setInterval(paintProj,500);
+}
+function paintProj(){
+  const r=PJ?.room;if(!r||!$('#pc'))return;
+  const live=r.status==='open'&&new Date(r.expires_at)>Date.now(),started=!!r.started_at,end=r.ends_at?new Date(r.ends_at).getTime():null;
+  $('#pc').textContent=PJ.n+' / '+r.max_participants;
+  $('#pqr').hidden=started||!live||PJ.n>=r.max_participants;
+  let st='',cd='';
+  if(!live)st='Sala cerrada';
+  else if(!started)st='Esperando participantes… escanea el QR';
+  else if(end){const left=(end-Date.now())/1000;cd=mmss(left);st=left>0?'¡Evaluación en curso! Tiempo restante':'Tiempo terminado'}
+  else st='¡Evaluación en curso!';
+  $('#pst').textContent=st;$('#pcd').textContent=cd;
 }
 
 /* ---------- editor ---------- */
@@ -346,24 +451,76 @@ async function resultsView(roomId){
   const [ev,qs]=await Promise.all([sb.from('evaluations').select('title,layers,competencies').eq('id',rm.data.evaluation_id).single(),sb.from('questions').select('id,prompt,type,options,competency,position').eq('evaluation_id',rm.data.evaluation_id).order('position')]);
   RS.ev=ev.data;RS.qs=qs.data||[];await refreshRes();
   RT=sb.channel('res'+roomId).on('postgres_changes',{event:'*',schema:'public',table:'attempts',filter:'room_id=eq.'+roomId},()=>{clearTimeout(RS.d);RS.d=setTimeout(refreshRes,700)}).subscribe();
-  POLL=setInterval(refreshRes,15000);
+  POLL=setInterval(refreshRes,15000);TOT=setInterval(tickPanel,1000);
 }
 async function refreshRes(){
   if(!RS)return;
-  const [p,a]=await Promise.all([sb.from('participants').select('id,name,team,summary,joined_at,finished_at').eq('room_id',RS.room.id).order('joined_at'),sb.from('attempts').select('*').eq('room_id',RS.room.id).eq('finalized',true)]);
-  RS.ps=p.data||[];RS.at=a.data||[];drawRes();
+  const [p,a,r]=await Promise.all([sb.from('participants').select('id,name,team,summary,joined_at,finished_at,email,invited,started_at,token').eq('room_id',RS.room.id).order('joined_at'),sb.from('attempts').select('*').eq('room_id',RS.room.id).eq('finalized',true),sb.from('rooms').select('*').eq('id',RS.room.id).single()]);
+  RS.ps=p.data||[];RS.at=a.data||[];if(r.data)RS.room=r.data;
+  const ae=document.activeElement;
+  if(ae&&app.contains(ae)&&ae.matches('input,textarea,select'))return; // no borrar lo que el docente está escribiendo
+  drawRes();
+}
+function roomState(room){
+  const now=Date.now(),live=room.status==='open'&&new Date(room.expires_at)>now;
+  if(!live)return{t:'Cerrada',c:'bad'};
+  if(room.mode==='invite')return{t:'Abierta a invitados',c:'ok'};
+  if(!room.started_at)return{t:'En espera (lobby)',c:'warn'};
+  if(room.ends_at&&new Date(room.ends_at)<=now)return{t:'Tiempo terminado',c:'bad'};
+  return{t:'En curso',c:'ok'};
+}
+function pstatus(p,at){
+  if(p.finished_at)return{t:'Terminó',c:'ok'};
+  if(p.started_at||at.some(a=>a.participant_id===p.id))return{t:'En curso',c:'warn'};
+  return{t:'No ha entrado',c:'bad'};
+}
+function ctlHtml(){
+  const {room,ps}=RS,st=roomState(room),live=st.t!=='Cerrada';
+  const lim=room.time_limit_sec||0,m=Math.floor(lim/60),sc=lim%60;
+  return `<section class="card noprint"><div class="row"><h2 style="margin:0">Control de sala</h2><span class="chip">${MODE[room.mode]||'Enlace'}</span><span class="chip ${st.c}">${st.t}</span><span class="chip">${ps.length} / ${room.max_participants}</span>
+   <div class="row sp">${room.mode==='qr'?`<a class="btn sm" href="#/t/proj/${room.id}" target="_blank" rel="noopener" style="text-decoration:none">📺 Proyectar</a>`:''}
+   ${room.mode!=='invite'&&!room.started_at&&live?'<button class="btn ok sm" data-act="startroom">▶ Iniciar ahora</button>':''}
+   ${live?'<button class="btn bad sm" data-act="closeroom">Cerrar sala</button>':''}</div></div>
+   <div class="grid g2" style="margin-top:8px"><div><div class="small mute" id="cdl"></div><div class="cd" id="cd" data-end="${room.ends_at||''}" data-start="${room.started_at||''}" data-lim="${lim}" data-mode="${room.mode}" data-live="${live?1:0}"></div></div>
+   <div><label>Tiempo límite ${room.mode==='invite'?'por persona':'de la evaluación'} (min : seg)</label><div class="row"><input id="smin" type="number" min="0" max="1440" value="${m}" style="width:80px" aria-label="Minutos"><b>:</b><input id="ssec" type="number" min="0" max="59" value="${sc}" style="width:80px" aria-label="Segundos"><button class="btn sec sm" data-act="settime">Guardar</button></div>
+   <p class="small mute">0:00 = sin límite. ${room.mode==='invite'?'Corre desde que cada persona abre su enlace.':'Si la sala ya inició, el cambio recalcula el fin.'}</p></div></div>
+   ${room.mode==='invite'?inviteHtml():''}</section>`;
+}
+function tickPanel(){
+  const el=$('#cd');if(!el)return;
+  const mode=el.dataset.mode,lim=+el.dataset.lim,end=el.dataset.end,live=el.dataset.live==='1',lab=$('#cdl');
+  let t='—',l='';
+  if(!live)l='Sala cerrada';
+  else if(mode==='invite'){t=lim?mmss(lim):'Sin límite';l=lim?'Límite por persona':'Sin límite de tiempo'}
+  else if(end){const left=(new Date(end)-Date.now())/1000;t=mmss(left);l=left>0?'Tiempo restante':'Tiempo terminado'}
+  else if(el.dataset.start){t='Sin límite';l='En curso'}
+  else{t=lim?mmss(lim):'Sin límite';l='Esperando inicio · tiempo límite'}
+  el.textContent=t;if(lab)lab.textContent=l;
+}
+function inviteHtml(){
+  const {ps,at,ev}=RS,inv=ps.filter(p=>p.invited).sort((a,b)=>(a.name||a.email||'').localeCompare(b.name||b.email||''));
+  const cnt={t:0,e:0,n:0};inv.forEach(p=>{const s=pstatus(p,at).t;if(s==='Terminó')cnt.t++;else if(s==='En curso')cnt.e++;else cnt.n++});
+  const rows=inv.map(p=>{const s=pstatus(p,at),l=invLink(p.token),mt=inviteMsg(p,ev.title,l);
+    return`<tr><td>${esc(p.name||'—')}</td><td>${esc(p.email||'—')}</td><td><span class="chip ${s.c}">${s.t}</span></td><td class="row"><button class="btn sec sm" data-act="copy" data-v="${esc(l)}">Copiar</button>${p.email?`<a class="btn sec sm" style="text-decoration:none" href="mailto:${esc(p.email)}?subject=${encodeURIComponent(ev.title)}&body=${encodeURIComponent(mt)}">Correo</a>`:''}<a class="btn sec sm" style="text-decoration:none" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(mt)}">WhatsApp</a>${s.t==='No ha entrado'?`<button class="btn bad sm" data-act="rminv" data-id="${p.id}" aria-label="Quitar invitado">✕</button>`:''}</td></tr>`}).join('');
+  return`<hr style="border:0;border-top:1px solid var(--line);margin:12px 0"><h3>Invitados</h3>
+   <label for="invtxt">Pega una lista (un invitado por línea: <i>Nombre, correo</i>; sirve copiar desde Excel) o sube un archivo CSV o TXT</label>
+   <textarea id="invtxt" placeholder="Ana Pérez, ana@empresa.com&#10;Luis Gómez, luis@empresa.com"></textarea>
+   <div class="row" style="margin-top:6px"><button class="btn sm" data-act="addinv">Añadir invitados</button><input type="file" id="invfile" accept=".csv,.txt,text/csv,text/plain" style="width:auto" aria-label="Subir archivo"></div>
+   ${inv.length?`<div class="row small" style="margin:10px 0"><span class="chip ok">Terminaron ${cnt.t}</span><span class="chip warn">En curso ${cnt.e}</span><span class="chip bad">Sin entrar ${cnt.n}</span><span class="sp row"><button class="btn sec sm" data-act="copyall">Copiar enlaces</button><button class="btn sec sm" data-act="copypend">Copiar pendientes</button><button class="btn sec sm" data-act="csvinv">CSV de invitados</button></span></div>
+   <table><tr><th>Nombre</th><th>Correo</th><th>Estado</th><th>Enviar</th></tr>${rows}</table>`:'<p class="mute small">Aún no hay invitados.</p>'}`;
 }
 const pstats=(p,at)=>{const r=at.filter(a=>a.participant_id===p.id);const s=r.reduce((x,a)=>x+Number(a.score),0),c=r.reduce((x,a)=>x+Number(a.calib),0);return{n:r.length,score:s,calib:c,total:Math.max(0,s+c),hints:r.reduce((x,a)=>x+a.hints_used,0),ok:r.filter(a=>a.correct).length}};
 const compProfile=at=>{const m={};at.forEach(a=>{const c=a.competency||'General';(m[c]??={s:0,n:0});m[c].s+=Number(a.score);m[c].n++});return Object.entries(m).map(([name,v])=>({name,pct:Math.round(v.s/(v.n*10)*100)}))};
 function drawRes(){
+  const dr=$('#invtxt');if(dr)RS.draft=dr.value;
   const {room,ps,at,qs,ev}=RS,tq=qs.length;
   const stats=ps.map(p=>({p,...pstats(p,at)}));
   const avg=stats.length&&tq?Math.round(stats.reduce((s,x)=>s+x.score,0)/(stats.length*tq*10)*100):0;
   const qrows=qs.map((q,i)=>{const r=at.filter(a=>a.question_id===q.id);return`<tr><td>${i+1}. ${esc(q.prompt.slice(0,70))}</td><td>${esc(q.competency||'')}</td><td>${r.length?Math.round(r.filter(a=>a.correct).length/r.length*100)+'%':'–'}</td><td>${r.reduce((s,a)=>s+a.hints_used,0)}</td></tr>`}).join('');
   const teams=[...new Set(ps.map(p=>p.team).filter(Boolean))];
   const sel=RS.sel&&ps.find(p=>p.id===RS.sel);
-  app.innerHTML=`<div class="row"><a href="#/t" class="btn sec sm" style="text-decoration:none">← Panel</a><h1 style="margin:0">${esc(ev.title)} · sala ${esc(room.code)}</h1><div class="row sp noprint"><button class="btn sec sm" data-act="copy" data-v="${esc(link(room.code))}">Copiar enlace</button><button class="btn sm" data-act="csv">Exportar CSV</button></div></div>
-  <div class="grid g3" style="margin-top:10px"><div class="card"><div class="small mute">Participantes</div><div class="big">${ps.length}</div></div><div class="card"><div class="small mute">Terminaron</div><div class="big">${ps.filter(p=>p.finished_at).length}</div></div><div class="card"><div class="small mute">Acierto promedio</div><div class="big">${avg}%</div></div></div>
+  app.innerHTML=`<div class="row"><a href="#/t" class="btn sec sm" style="text-decoration:none">← Panel</a><h1 style="margin:0">${esc(ev.title)} · sala ${esc(room.code)}</h1><div class="row sp noprint">${room.mode==='invite'?'':`<button class="btn sec sm" data-act="copy" data-v="${esc(link(room.code))}">Copiar enlace</button>`}<button class="btn sm" data-act="csv">Exportar CSV</button></div></div>
+  ${ctlHtml()}<div class="grid g3" style="margin-top:10px"><div class="card"><div class="small mute">Participantes</div><div class="big">${ps.length}</div></div><div class="card"><div class="small mute">Terminaron</div><div class="big">${ps.filter(p=>p.finished_at).length}</div></div><div class="card"><div class="small mute">Acierto promedio</div><div class="big">${avg}%</div></div></div>
   <div class="grid g2"><section class="card"><h2>Mapa de competencias del grupo</h2>${radar(compProfile(at))}</section>
   <section class="card"><h2>Resumen con IA</h2><button class="btn sm" data-act="aisum">Generar resumen</button><div id="aisum" class="fb story" style="margin-top:8px" ${RS.ai?'':'hidden'} aria-live="polite">${esc(RS.ai||'')}</div></section></div>
   <section class="card"><h2>Por pregunta</h2><table><tr><th>Pregunta</th><th>Competencia</th><th>Acierto</th><th>Pistas</th></tr>${qrows}</table></section>
@@ -372,13 +529,15 @@ function drawRes(){
   ${teams.length?`<section class="card"><h2>Equipos (evidencia individual)</h2>${teams.map(t=>{const m=stats.filter(x=>x.p.team===t);return`<h3>${esc(t)} · promedio ${Math.round(m.reduce((s,x)=>s+x.total,0)/m.length)}</h3><p class="small">${m.map(x=>`${esc(x.p.name||'Anónimo')}: ${x.total} pts (${x.ok} aciertos)`).join(' · ')}</p>`}).join('')}</section>`:''}
   ${sel?`<section class="card"><h2>${esc(sel.name||'Anónimo')}</h2><div class="grid g2"><div>${radar(compProfile(at.filter(a=>a.participant_id===sel.id)))}${sel.summary?`<div class="fb story">${esc(sel.summary)}</div>`:''}</div>
   <table><tr><th>Pregunta</th><th>Resp.</th><th>Conf.</th><th>Pts</th></tr>${qs.map((q,i)=>{const a=at.find(a=>a.participant_id===sel.id&&a.question_id===q.id);return`<tr><td>${i+1}</td><td>${a?`<span class="chip ${a.correct?'ok':'bad'}">${a.correct?'✔':'✘'}</span> ${esc(ansText(q,a.answer).slice(0,40))}`:'–'}</td><td>${a?.confidence??'–'}</td><td>${a?a.score:'–'}</td></tr>`}).join('')}</table></div></section>`:''}`;
+  if(RS.draft&&$('#invtxt'))$('#invtxt').value=RS.draft;
+  tickPanel();
 }
 const ansText=(q,a)=>q.type==='short'?(a?.text||''):(q.options?.[a?.index]??'');
 const csvCell=v=>{let s=String(v??'');if(/^[=+\-@\t\r]/.test(s))s="'"+s;return /[",\n;]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s};
 function exportCsv(){
   const {room,ps,at,qs,ev}=RS;const pm=new Map(ps.map((p,i)=>[p.id,{...p,i}])),qm=new Map(qs.map((q,i)=>[q.id,{...q,i}]));
-  const head=['sala','evaluacion','participante','equipo','n_pregunta','pregunta','competencia','respuesta','confianza','pistas','intentos','tiempo_s','correcto','puntaje','calibracion','fecha'];
-  const rows=at.map(a=>{const p=pm.get(a.participant_id),q=qm.get(a.question_id);return[room.code,ev.title,p?.name||'Anónimo '+((p?.i??0)+1),p?.team||'',(q?.i??0)+1,q?.prompt||'',a.competency||'',q?ansText(q,a.answer):'',a.confidence??'',a.hints_used,a.tries,Math.round((a.time_ms||0)/1000),a.correct?'sí':'no',a.score,a.calib,a.updated_at]});
+  const head=['sala','evaluacion','participante','correo','equipo','n_pregunta','pregunta','competencia','respuesta','confianza','pistas','intentos','tiempo_s','correcto','puntaje','calibracion','fecha'];
+  const rows=at.map(a=>{const p=pm.get(a.participant_id),q=qm.get(a.question_id);return[room.code,ev.title,p?.name||'Anónimo '+((p?.i??0)+1),p?.email||'',p?.team||'',(q?.i??0)+1,q?.prompt||'',a.competency||'',q?ansText(q,a.answer):'',a.confidence??'',a.hints_used,a.tries,Math.round((a.time_ms||0)/1000),a.correct?'sí':'no',a.score,a.calib,a.updated_at]});
   const csv='﻿'+[head,...rows].map(r=>r.map(csvCell).join(',')).join('\r\n');
   const u=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));const l=document.createElement('a');l.href=u;l.download=`resultados_${room.code}.csv`;l.click();setTimeout(()=>URL.revokeObjectURL(u),2000);
 }
@@ -392,7 +551,7 @@ document.addEventListener('click',async e=>{
   else if(a==='dash')go('#/t');
   else if(a==='logout'){await sb.auth.signOut();user=null;go('#/')}
   else if(a==='neweval')newEval();
-  else if(a==='newroom')newRoom(t.dataset.id);
+  else if(a==='newroom')go('#/t/new/'+t.dataset.id);
   else if(a==='deleval'){if(confirm('¿Borrar esta evaluación con sus salas y resultados? No se puede deshacer.')){const r=await sb.from('evaluations').delete().eq('id',t.dataset.id);if(r.error)toast(msg(r.error));dashView()}}
   else if(a==='close'){await sb.from('rooms').update({status:'closed'}).eq('id',t.dataset.id);dashView()}
   else if(a==='copy'){try{await navigator.clipboard.writeText(t.dataset.v);toast('Enlace copiado')}catch{prompt('Copia el enlace:',t.dataset.v)}}
@@ -402,10 +561,22 @@ document.addEventListener('click',async e=>{
   else if(a==='gen')genQ();
   else if(a==='detail'){RS.sel=t.dataset.id;drawRes();$('main').scrollTo?.(0,0)}
   else if(a==='csv')exportCsv();
+  else if(a==='fs')document.documentElement.requestFullscreen?.();
+  else if(a==='startroom'){const r=await sb.rpc('start_room',{p_room:RS.room.id});if(r.error)toast(msg(r.error));else{toast('Evaluación iniciada');await refreshRes()}}
+  else if(a==='closeroom'){if(confirm('¿Cerrar la sala? Nadie más podrá responder.')){await sb.from('rooms').update({status:'closed'}).eq('id',RS.room.id);await refreshRes()}}
+  else if(a==='settime'){const sec=(+$('#smin').value||0)*60+(+$('#ssec').value||0);const r=await sb.rpc('set_room_time',{p_room:RS.room.id,p_seconds:sec});if(r.error)toast(msg(r.error));else{toast('Tiempo actualizado');document.activeElement?.blur();await refreshRes()}}
+  else if(a==='addinv'){const list=parseInvites($('#invtxt').value);if(!list.length)return toast('No encontré invitados en el texto.');
+    const r=await sb.rpc('create_invites',{p_room:RS.room.id,p_list:list});if(r.error)return toast(msg(r.error));
+    RS.draft='';$('#invtxt').value='';toast(r.data+' invitado(s) añadido(s)'+(r.data<list.length?' (el resto estaba repetido o superó el límite)':''));document.activeElement?.blur();await refreshRes()}
+  else if(a==='copyall')copyText(RS.ps.filter(p=>p.invited).map(p=>[p.name||'',p.email||'',invLink(p.token)].join('\t')).join('\n'));
+  else if(a==='copypend')copyText(RS.ps.filter(p=>p.invited&&!p.finished_at).map(p=>[p.name||'',p.email||'',invLink(p.token)].join('\t')).join('\n'));
+  else if(a==='csvinv')downloadCsv('invitados_'+RS.room.code+'.csv',[['nombre','correo','enlace','estado'],...RS.ps.filter(p=>p.invited).map(p=>[p.name||'',p.email||'',invLink(p.token),pstatus(p,RS.at).t])]);
+  else if(a==='rminv'){const r=await sb.rpc('remove_invite',{p_participant:t.dataset.id});if(r.error)toast(msg(r.error));await refreshRes()}
   else if(a==='aisum'){t.disabled=true;try{const r=await api('summary',{room_id:RS.room.id},true);RS.ai=r.summary+(r.simulated?'\n\n(Resumen sin IA: configura ANTHROPIC_API_KEY o espera nuevo cupo.)':'');}catch(x){RS.ai=msg(x)}drawRes()}
 });
 document.addEventListener('change',e=>{
   const t=e.target;
+  if(t.id==='invfile'&&t.files[0]){const rd=new FileReader();rd.onload=()=>{const x=$('#invtxt');x.value+=(x.value?'\n':'')+rd.result};rd.readAsText(t.files[0])}
   if(t.dataset?.act==='qtype'){collect();drawEditor()}
   if(t.dataset?.act==='layer'){collect();drawEditor()}
 });
