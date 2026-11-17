@@ -49,6 +49,19 @@ table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:6px 7px;b
 .qr svg{width:min(70vw,420px);height:auto;border-radius:12px;box-shadow:var(--sh)}
 .seg{display:flex;gap:8px;flex-wrap:wrap}.seg label{flex:1;min-width:200px;margin:0;padding:10px;border:2px solid var(--line);border-radius:12px;cursor:pointer;color:var(--ink);font-weight:500}
 .seg label:has(input:checked){border-color:var(--p2);background:var(--chip)}.seg input{position:absolute;opacity:0}
+.ring{position:relative;width:170px;aspect-ratio:1;margin:4px auto}.ring.xl{width:min(55vh,420px)}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg);overflow:visible}.ring .trk{fill:none;stroke:var(--line);stroke-width:10}
+.ring .prg{fill:none;stroke-width:10;stroke-linecap:round;stroke-dasharray:326.73;transition:stroke-dashoffset 1s linear,stroke .4s;filter:drop-shadow(0 0 6px rgba(236,72,153,.35))}
+.ring.low .prg{stroke:var(--warn)}.ring.urgent .prg{stroke:var(--bad)}.ring.stop .prg{stroke:var(--mute);filter:none}.ring.idle .prg{opacity:.55}
+.ring .rc{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:18%}
+.ring .rt{font-size:34px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.05}.ring.xl .rt{font-size:min(11vh,96px)}
+.ring .rl{font-size:11px;color:var(--mute);font-weight:600}.ring.xl .rl{font-size:min(2.6vh,20px)}
+.ring.urgent .rt{color:var(--bad)}.ring.stop .rt{color:var(--mute)}
+.modal{position:fixed;inset:0;background:rgba(10,8,20,.55);display:grid;place-items:center;z-index:30;padding:14px}
+footer{text-align:center;padding:8px 14px 18px;font-size:11px}footer a{color:var(--mute)}
+.legal h2{margin-top:14px}.legal p,.legal li{line-height:1.55}
+@media(max-width:760px){.pconly{display:none!important}}@media(min-width:761px){.mobonly{display:none!important}}
+@media(prefers-reduced-motion:no-preference){.ring.urgent{animation:pulse 1s ease-in-out infinite}@keyframes pulse{50%{transform:scale(1.045)}}.ring.free .prg{transition:stroke-dashoffset .9s linear}}
 @media(prefers-reduced-motion:no-preference){.card{transition:transform .15s}.card:hover{transform:translateY(-1px)}}
 @media print{header,.noprint{display:none!important}body{background:#fff}}
 </style>
@@ -59,11 +72,13 @@ table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:6px 7px;b
   <nav id="nav"></nav>
 </header>
 <main id="app" tabindex="-1"></main>
+<footer class="noprint"><a href="#/legal">Aviso de privacidad y términos de uso</a></footer>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4"></script>
 <script>
 /* ================= CONFIG ================= */
-const CFG={URL:'https://bclbbulqhffnieysahqr.supabase.co',KEY:'sb_publishable_WWmySdsKUERHqv_3DL0EfQ_kFTZgto9',APP:'Brújula',CONTACT:''};
+const CFG={URL:'https://bclbbulqhffnieysahqr.supabase.co',KEY:'sb_publishable_WWmySdsKUERHqv_3DL0EfQ_kFTZgto9',APP:'Brújula',CONTACT:'',
+  /* Datos del responsable para el aviso legal: complétalos */ OWNER:'',NIT:98643481'',EMAIL:franklr76@gmail.com'',CITY:Bello, Antioquia'',UPDATED:'16 de noviembre de 2026'};
 const FN=CFG.URL+'/functions/v1/api';
 document.getElementById('appname').textContent=CFG.APP;
 const sb=window.supabase.createClient(CFG.URL,CFG.KEY);
@@ -72,7 +87,7 @@ const sb=window.supabase.createClient(CFG.URL,CFG.KEY);
 const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const app=$('#app');
-const ERR={ROOM_NOT_FOUND:'No encontramos esa sala. Revisa el código.',ROOM_CLOSED:'La sala está cerrada o expiró.',ROOM_FULL:'La sala está llena.',OWNER_TRIAL_EXPIRED:'Esta sala ya no está disponible (el docente debe activar su plan).',BAD_TOKEN:'Tu sesión no es válida. Entra de nuevo con el código.',ALREADY:'Esa pregunta ya fue respondida.',AUTH:'Inicia sesión de nuevo.',NOT_OWNER:'No tienes permiso.',NO_TOPIC:'Escribe un tema.',TRIAL_EXPIRED:'Tu prueba de 7 días terminó. Activa un plan para crear contenido nuevo.',TRIAL_LIMIT_EVALS:'Límite de la prueba: 3 evaluaciones.',TRIAL_FEATURE:'Los casos con decisión se activan con un plan de pago.',SERVER_ERROR:'Error del servidor. Intenta de nuevo.',SAVE_FAILED:'No se pudo guardar. Intenta de nuevo.',INVITE_ONLY:'Esta sala es solo por invitación. Usa tu enlace personal.',BAD_INVITE:'Tu enlace de invitación no es válido.',TIME_UP:'Se acabó el tiempo.',NOT_STARTED:'La evaluación aún no inicia.',CANNOT_START:'No se puede iniciar esta sala.',NOT_INVITE_ROOM:'Esta sala no es de invitados.',BAD_MODE:'Modo de sala no válido.'};
+const ERR={ROOM_NOT_FOUND:'No encontramos esa sala. Revisa el código.',ROOM_CLOSED:'La sala está cerrada o expiró.',ROOM_FULL:'La sala está llena.',OWNER_TRIAL_EXPIRED:'Esta sala ya no está disponible (el docente debe activar su plan).',BAD_TOKEN:'Tu sesión no es válida. Entra de nuevo con el código.',ALREADY:'Esa pregunta ya fue respondida.',AUTH:'Inicia sesión de nuevo.',NOT_OWNER:'No tienes permiso.',NO_TOPIC:'Escribe un tema.',TRIAL_EXPIRED:'Tu prueba de 7 días terminó. Activa un plan para crear contenido nuevo.',TRIAL_LIMIT_EVALS:'Límite de la prueba: 3 evaluaciones.',TRIAL_FEATURE:'Los casos con decisión se activan con un plan de pago.',SERVER_ERROR:'Error del servidor. Intenta de nuevo.',SAVE_FAILED:'No se pudo guardar. Intenta de nuevo.',INVITE_ONLY:'Esta sala es solo por invitación. Usa tu enlace personal.',BAD_INVITE:'Tu enlace de invitación no es válido.',TIME_UP:'Se acabó el tiempo.',NOT_STARTED:'La evaluación aún no inicia.',CANNOT_START:'No se puede iniciar esta sala.',NOT_INVITE_ROOM:'Esta sala no es de invitados.',BAD_MODE:'Modo de sala no válido.',CANNOT_STOP:'El reloj no está corriendo.',BAD_SHEET_URL:'Ese enlace no es de una hoja de Google Sheets o de un archivo de Drive.',SHEET_NOT_PUBLIC:'No pude abrir la hoja. Compártela como "Cualquier persona con el enlace" (lector) y vuelve a intentar.',SHEET_TOO_BIG:'El archivo es muy grande (máximo 2 MB).'};
 const msg=e=>{const m=String(e?.message||e);for(const k in ERR)if(m.includes(k))return ERR[k];if(/Database error saving new user/i.test(m))return 'Ya existe una cuenta con ese correo (o una variante).';return m};
 function toast(t){const d=document.createElement('div');d.className='toast';d.setAttribute('role','status');d.textContent=t;document.body.appendChild(d);setTimeout(()=>d.remove(),2600)}
 async function api(action,body={},auth=false){
@@ -95,19 +110,78 @@ function qrSvg(text){
     return`<svg viewBox="0 0 ${n+8} ${n+8}" role="img" aria-label="Código QR de la sala" shape-rendering="crispEdges"><rect width="100%" height="100%" fill="#fff"/><path d="${d}" fill="#000"/></svg>`}
   catch{return''}
 }
-function parseInvites(txt){
-  const out=[],seen=new Set(),em=/[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+/;
-  String(txt||'').split(/\r?\n/).forEach(line=>{
-    line=line.trim();if(!line||/^(nombre|name)\b.*(correo|email|mail)/i.test(line))return;
-    const m=line.match(em);let email='',name='';
-    if(m){email=m[0].toLowerCase();name=line.replace(m[0],'')}else name=line;
-    name=name.replace(/[\t;,"]+/g,' ').replace(/\s+/g,' ').trim();
+function normPhone(x){let d=String(x||'').replace(/\D/g,'');if(d.length===10&&d[0]==='3')d='57'+d;return d.length>=7&&d.length<=15?d:''}
+function csvRows(text){
+  text=String(text||'').replace(/^﻿/,'');const first=(text.split(/\r?\n/).find(l=>l.trim())||'');
+  const sep=first.includes('\t')?'\t':(first.split(';').length>first.split(',').length?';':',');
+  const rows=[];let row=[],cell='',q=false;
+  for(let i=0;i<text.length;i++){const c=text[i];
+    if(q){if(c==='"'){if(text[i+1]==='"'){cell+='"';i++}else q=false}else cell+=c}
+    else if(c==='"'&&cell==='')q=true;
+    else if(c===sep){row.push(cell);cell=''}
+    else if(c==='\n'||c==='\r'){if(c==='\r'&&text[i+1]==='\n')i++;row.push(cell);rows.push(row);row=[];cell=''}
+    else cell+=c}
+  row.push(cell);rows.push(row);return rows;
+}
+function rowsToInvites(rows){
+  rows=(rows||[]).map(r=>r.map(c=>String(c??'').trim())).filter(r=>r.some(Boolean));
+  const out=[],seen=new Set(),EM=/[^\s@,;<>"]+@[^\s@,;<>"]+\.[^\s@,;<>"]+/,PH=/\+?\d[\d\s().-]{5,}\d/;
+  const H=(rows[0]||[]).map(h=>h.toLowerCase()),hi=re=>H.findIndex(h=>re.test(h));
+  const head=!H.some(h=>h.includes('@'))&&H.some(h=>/^(nombres?|name|participante|apellidos?|correo|e-?mail|mail|celular|tel[eé]fono|whatsapp|m[oó]vil)/.test(h));
+  let iN=-1,iA=-1,iE=-1,iP=-1;
+  if(head){iN=hi(/^(nombres?|name|participante)/);iA=hi(/^apellidos?/);iE=hi(/(correo|e-?mail|mail)/);iP=hi(/(cel|tel|whats|m[oó]vil|phone)/);rows=rows.slice(1)}
+  const add=(name,email,phone)=>{
+    email=(String(email||'').match(EM)||[''])[0].toLowerCase().slice(0,120);phone=normPhone(phone);
+    name=String(name||'').replace(/[\t;,"<>]+/g,' ').replace(/\s+/g,' ').trim();
     if(!name&&email)name=email.split('@')[0];
-    const key=email||name.toLowerCase();if(!key||seen.has(key))return;seen.add(key);
-    out.push({name:name.slice(0,60),email:email.slice(0,120)});
+    const k=email||phone||name.toLowerCase();if(!k||seen.has(k))return;seen.add(k);
+    out.push({name:name.slice(0,60),email,phone});
+  };
+  rows.forEach(r=>{
+    if(head&&(iN>=0||iA>=0)){add([r[iN],r[iA]].filter((v,i)=>v&&(i?iA>=0:iN>=0)).join(' '),iE>=0?r[iE]:r.join(' '),iP>=0?r[iP]:'');return}
+    let line=r.join(' ');const e=(line.match(EM)||[''])[0];if(e)line=line.replace(e,' ');
+    const ph=(line.match(PH)||[''])[0];if(ph&&ph.replace(/\D/g,'').length>=7)line=line.replace(ph,' ');
+    add(line,e,ph);
   });
   return out;
 }
+const parseInvites=txt=>rowsToInvites(csvRows(txt));
+const invitesToText=l=>l.map(x=>[x.name,x.email,x.phone].filter(Boolean).join(', ')).join('\n');
+async function loadXLSX(){
+  if(window.XLSX)return;
+  await new Promise((res,rej)=>{const sc=document.createElement('script');sc.src='https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js';sc.onload=res;sc.onerror=()=>rej(new Error('No se pudo cargar el lector de hojas de cálculo. Revisa tu conexión.'));document.head.appendChild(sc)});
+}
+async function sheetRows(buf){await loadXLSX();const wb=XLSX.read(buf,{type:'array'});return XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:false,defval:''})}
+function appendInvText(list){
+  const x=$('#invtxt');if(!x)return;if(!list.length){toast('No encontré nombres, correos ni celulares en el archivo.');return}
+  x.value+=(x.value.trim()?'\n':'')+invitesToText(list);RS.draft=x.value;
+  toast(list.length+' persona(s) cargada(s). Revísalas y pulsa "Añadir invitados".');
+}
+const waLink=(p,text)=>'https://wa.me/'+(p.phone||'')+'?text='+encodeURIComponent(text);
+const mailLink=(p,subj,text)=>'mailto:'+encodeURIComponent(p.email||'')+'?subject='+encodeURIComponent(subj)+'&body='+encodeURIComponent(text);
+/* reloj circular */
+const RC=326.73;
+function clockOf(r){
+  const now=Date.now(),live=r.status==='open'&&new Date(r.expires_at)>now,lim=r.time_limit_sec||0;
+  const st=r.started_at?+new Date(r.started_at):null,en=r.ends_at?+new Date(r.ends_at):null,sp=r.stopped_at?+new Date(r.stopped_at):null;
+  if(sp){if(en){const left=Math.max(0,(en-sp)/1000);return{frac:lim?left/lim:0,txt:mmss(left),lab:left>0?'Reloj detenido':'Tiempo terminado',cls:'stop'}}
+    return{frac:1,txt:mmss((sp-(st||sp))/1000),lab:'Reloj detenido · duración',cls:'stop'}}
+  if(!live)return{frac:0,txt:'—',lab:'Sala cerrada',cls:'stop'};
+  if(!st)return{frac:1,txt:lim?mmss(lim):'∞',lab:lim?'Listo para iniciar':'Sin límite de tiempo',cls:'idle'};
+  if(en){const left=Math.max(0,(en-now)/1000),f=lim?left/lim:0;return{frac:f,txt:mmss(left),lab:left>0?'Tiempo restante':'Tiempo terminado',cls:left<=0?'stop':left<=10?'urgent':f<=.25?'low':'ok'}}
+  const el=(now-st)/1000;return{frac:(el%60)/60,txt:mmss(el),lab:'Transcurrido · sin límite',cls:'free'};
+}
+function ringHtml(id,c,big){
+  const off=RC*(1-Math.min(1,Math.max(0,c.frac)));
+  return`<div class="ring ${big?'xl ':''}${c.cls}" id="${id}" role="timer" aria-live="off"><svg viewBox="0 0 120 120" aria-hidden="true"><defs><linearGradient id="${id}g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--p)"/><stop offset="1" style="stop-color:var(--p2)"/></linearGradient></defs><circle class="trk" cx="60" cy="60" r="52"/><circle class="prg" cx="60" cy="60" r="52" stroke="url(#${id}g)" style="stroke-dashoffset:${off}"/></svg><div class="rc"><b class="rt">${esc(c.txt)}</b><span class="rl">${esc(c.lab)}</span></div></div>`;
+}
+function setRing(id,c){
+  const el=document.getElementById(id);if(!el)return;
+  el.className='ring'+(el.classList.contains('xl')?' xl ':' ')+c.cls;
+  el.querySelector('.prg').style.strokeDashoffset=RC*(1-Math.min(1,Math.max(0,c.frac)));
+  el.querySelector('.rt').textContent=c.txt;el.querySelector('.rl').textContent=c.lab;
+}
+const roomDone=r=>{const now=Date.now();return r.status!=='open'||new Date(r.expires_at)<=now||!!r.stopped_at||(!!r.ends_at&&new Date(r.ends_at)<=now)};
 function downloadCsv(name,rows){
   const csv='\ufeff'+rows.map(r=>r.map(csvCell).join(',')).join('\r\n');
   const u=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));const l=document.createElement('a');l.href=u;l.download=name;l.click();setTimeout(()=>URL.revokeObjectURL(u),2000);
@@ -134,7 +208,8 @@ function radar(items){
 let user=null,TIMER=null,RT=null,POLL=null,TOT=null,PJ=null;
 function cleanup(){clearInterval(TIMER);clearInterval(POLL);clearInterval(TOT);if(RT){sb.removeChannel(RT);RT=null}}
 function nav(){
-  $('#nav').innerHTML=(user?`<button class="btn ghost sm" data-act="dash">Panel</button><button class="btn ghost sm" data-act="logout">Salir</button>`:`<button class="btn ghost sm" data-act="home">Entrar a sala</button><button class="btn ghost sm" data-act="login">Docentes</button>`)+`<button class="btn ghost sm" data-act="theme" aria-label="Cambiar tema claro u oscuro">${document.documentElement.dataset.theme==='dark'?'☀️':'🌙'}</button>`;
+  const play=location.hash.startsWith('#/play');
+  $('#nav').innerHTML=(play?'':user?`<button class="btn ghost sm" data-act="dash">Panel</button><button class="btn ghost sm" data-act="logout">Salir</button>`:`<button class="btn ghost sm" data-act="home">Entrar a sala</button><button class="btn ghost sm" data-act="login">Docentes</button>`)+`<button class="btn ghost sm" data-act="theme" aria-label="Cambiar tema claro u oscuro">${document.documentElement.dataset.theme==='dark'?'☀️':'🌙'}</button>`;
 }
 function go(h){if(location.hash===h)route();else location.hash=h}
 async function route(){
@@ -149,6 +224,7 @@ async function route(){
     if(h.startsWith('#/t/proj/'))return projView(h.split('/')[3]);
     return dashView()}
   if(h==='#/login')return authView();
+  if(h==='#/legal')return legalView();
   return homeView();
 }
 window.addEventListener('hashchange',route);
@@ -192,7 +268,8 @@ function playRoute(){
    <p class="small mute">${m.total} preguntas${e.rules?.timePerQuestion?` · ${e.rules.timePerQuestion}s por pregunta`:''}</p>
    <div class="row">${tags.map(t=>`<span class="chip">${esc(t)}</span>`).join('')}</div>
    ${L.calibrated?'<p class="small mute">Antes de responder indicarás qué tan seguro estás. Se premia saber cuánto sabes.</p>':''}
-   <div class="row" style="margin-top:10px"><button class="btn" id="go">Comenzar</button></div></section>`;
+   <div class="row" style="margin-top:10px"><button class="btn" id="go">Comenzar</button></div>
+   <p class="small mute" style="margin-top:8px">Al continuar aceptas el tratamiento de tus respuestas según el <a href="#/legal" target="_blank" rel="noopener">aviso de privacidad</a>.</p></section>`;
   $('#go').onclick=()=>{P.started=true;sessionStorage.setItem('bj_s',JSON.stringify({token:P.token,meta:P.meta,started:true}));loadQ()};
 }
 async function loadQ(){
@@ -209,7 +286,7 @@ function handleQ(r){
   P.q=r;P.ends=r.ends_at?new Date(r.ends_at).getTime():null;showQ();
 }
 function showLobby(r){
-  app.innerHTML=`<section class="card" style="text-align:center"><h2>Esperando el inicio…</h2><div class="big" id="lb">${r.joined} / ${r.max}</div><p class="mute">La evaluación empieza cuando se complete el cupo o cuando el docente la inicie. No cierres esta página.</p></section>`;
+  app.innerHTML=`<section class="card" style="text-align:center"><h2>Esperando el inicio…</h2><div class="big" id="lb">${r.joined} / ${r.max}</div><p class="mute">${P.meta?.mode==='invite'?'Han entrado los invitados que ves arriba. La evaluación empieza para todos al mismo tiempo, cuando entren todos o cuando quien la organiza la inicie.':'La evaluación empieza cuando se complete el cupo o cuando quien la organiza la inicie.'} No cierres esta página.</p></section>`;
   POLL=setInterval(async()=>{try{const x=await api('question',{token:P.token});if(!x.waiting)handleQ(x);else{const b=$('#lb');if(b)b.textContent=x.joined+' / '+x.max}}catch(e){if(/ROOM_CLOSED/.test(String(e.message))){clearInterval(POLL);app.innerHTML='<section class="card"><p>La sala se cerró.</p><button class="btn" data-act="home">Volver</button></section>'}}},3000);
 }
 function startTotal(){
@@ -235,6 +312,7 @@ function showQ(hint){
   $('#qf').onsubmit=e=>{e.preventDefault();submit(false)};
   if(R.timePerQuestion>0){let t=R.timePerQuestion;const tick=()=>{$('#tm').textContent='⏱ '+t+'s';if(t--<=0){clearInterval(TIMER);submit(true)}};tick();TIMER=setInterval(tick,1000)}
   startTotal();
+  clearInterval(POLL);POLL=setInterval(async()=>{try{const x=await api('question',{token:P.token});if(x.done){clearInterval(TIMER);toast('La evaluación terminó');handleQ(x)}}catch{}},15000);
 }
 async function submit(timeout){
   const r=P.q,q=r.question,L=P.meta.evaluation.layers||{};
@@ -299,11 +377,12 @@ async function dashView(){
   const trial=ST?.plan==='trial';
   const banner=trial?`<div class="card" style="background:${ST.expired?'var(--badbg)':'var(--warnbg)'}"><b>${ST.expired?'Tu prueba terminó.':`Prueba gratuita: ${ST.days_left} día(s) restante(s).`}</b>
    <span class="small"> Evaluaciones ${ST.evals_used}/${ST.limits.evals} · IA ${ST.ai_used}/${ST.limits.ai} · hasta ${ST.limits.participants} participantes por sala. 🔒 Narrativa, casos con decisión y equipos se activan con un plan.${ST.expired?' Puedes ver tus resultados; para crear salas nuevas activa un plan'+(CFG.CONTACT?` (${esc(CFG.CONTACT)})`:'')+'.':''}</span></div>`:'';
-  app.innerHTML=`${banner}<div class="row"><h1>Mis evaluaciones</h1><button class="btn sp" data-act="neweval" ${ST?.expired?'disabled':''}>+ Nueva evaluación</button></div>
+  const doneIds=rooms.filter(roomDone).map(r=>r.id);
+  app.innerHTML=`${banner}<div class="row"><h1>Mis evaluaciones</h1><div class="row sp">${doneIds.length?`<button class="btn bad sm" data-act="delrooms" data-ids="${doneIds.join(',')}">🗑 Eliminar todas las salas terminadas (${doneIds.length})</button>`:''}<button class="btn" data-act="neweval" ${ST?.expired?'disabled':''}>+ Nueva evaluación</button></div></div>
   ${evs.length?evs.map(e=>{const rs=rooms.filter(r=>r.evaluation_id===e.id);return`<section class="card"><div class="row"><div><h2 style="margin:0">${esc(e.title)}</h2><span class="chip">${e.context==='empresa'?'Empresa':'Aula'}</span> ${Object.entries(e.layers||{}).filter(([,v])=>v).map(([k])=>`<span class="chip">${esc(k)}</span>`).join(' ')}</div>
    <div class="row sp"><a class="btn sec sm" href="#/t/eval/${e.id}" style="text-decoration:none">Editar</a><button class="btn sm" data-act="newroom" data-id="${e.id}" ${ST?.expired?'disabled':''}>Crear sala</button><button class="btn bad sm" data-act="deleval" data-id="${e.id}">Borrar</button></div></div>
-   ${rs.length?`<table><tr><th>Código</th><th>Estado</th><th>Vence</th><th></th></tr>${rs.map(r=>{const live=r.status==='open'&&new Date(r.expires_at)>new Date();return`<tr><td><b>${esc(r.code)}</b></td><td><span class="chip ${live?'ok':''}">${live?'Abierta':'Cerrada'}</span>${r.team_mode?' <span class="chip">equipos</span>':''} <span class="chip">${MODE[r.mode]||'Enlace'}</span></td><td>${fmtD(r.expires_at)}</td>
-   <td class="row">${r.mode==='invite'?'':`<button class="btn sec sm" data-act="copy" data-v="${esc(link(r.code))}">Copiar enlace</button>`}<a class="btn sm" href="#/t/res/${r.id}" style="text-decoration:none">Resultados</a>${live?`<button class="btn sec sm" data-act="close" data-id="${r.id}">Cerrar</button>`:''}</td></tr>`}).join('')}</table>`:'<p class="mute small">Sin salas todavía.</p>'}</section>`}).join(''):'<div class="card mute">Aún no tienes evaluaciones. Crea la primera.</div>'}`;
+   ${rs.length?`<table><tr><th>Código</th><th>Estado</th><th>Vence</th><th></th></tr>${rs.map(r=>{const live=r.status==='open'&&new Date(r.expires_at)>new Date(),done=roomDone(r);return`<tr><td><b>${esc(r.code)}</b></td><td><span class="chip ${done?'':'ok'}">${!live?'Cerrada':done?'Terminada':'Abierta'}</span>${r.team_mode?' <span class="chip">equipos</span>':''} <span class="chip">${MODE[r.mode]||'Enlace'}</span></td><td>${fmtD(r.expires_at)}</td>
+   <td class="row">${r.mode==='invite'?'':`<button class="btn sec sm" data-act="copy" data-v="${esc(link(r.code))}">Copiar enlace</button>`}<a class="btn sm" href="#/t/res/${r.id}" style="text-decoration:none">Resultados</a>${live&&!done?`<button class="btn sec sm" data-act="close" data-id="${r.id}">Cerrar</button>`:''}${done?`<button class="btn bad sm" data-act="delrooms" data-ids="${r.id}">Eliminar</button>`:''}</td></tr>`}).join('')}</table>`:'<p class="mute small">Sin salas todavía.</p>'}</section>`}).join(''):'<div class="card mute">Aún no tienes evaluaciones. Crea la primera.</div>'}`;
 }
 async function newEval(){
   const {data,error}=await sb.from('evaluations').insert({title:'Nueva evaluación'}).select().single();
@@ -313,16 +392,16 @@ async function newRoomView(evId){
   const {data:st}=await sb.rpc('my_status');ST=st;const trial=ST?.plan==='trial';
   app.innerHTML=`<div class="row"><a href="#/t" class="btn sec sm" style="text-decoration:none">← Panel</a><h1 style="margin:0">Crear sala</h1></div>
   <section class="card"><h2>¿Cómo van a entrar los participantes?</h2><div class="seg" role="radiogroup">
-   <label><input type="radio" name="md" value="qr" checked><b>1 · QR en pantalla</b><br><span class="small mute">Proyectas un QR (estilo Kahoot). Al llenarse el cupo la sala se cierra y arranca la cuenta regresiva.</span></label>
+   <label><input type="radio" name="md" value="qr" checked><b>1 · QR en pantalla</b><br><span class="small mute">Proyectas un QR desde tu PC. Al llenarse el cupo la sala se cierra y arranca la cuenta regresiva.</span></label>
    <label><input type="radio" name="md" value="link"><b>2 · Enlace manual</b><br><span class="small mute">Pegas el enlace en WhatsApp u otro canal. Al llenarse el cupo arranca el contador en tu panel.</span></label>
-   <label><input type="radio" name="md" value="invite"><b>3 · Lista de invitados</b><br><span class="small mute">Cargas nombres o correos y cada persona recibe su enlace personal. Con seguimiento de quién respondió.</span></label></div>
+   <label><input type="radio" name="md" value="invite"><b>3 · Lista de invitados</b><br><span class="small mute">Cargas la lista (archivo, Drive o pegada) y cada persona recibe su enlace personal. Empiezan todos a la vez cuando entran todos o cuando tú inicias.</span></label></div>
   <div class="grid g3"><div id="maxw"><label for="nm">Máximo de participantes</label><input id="nm" type="number" min="1" max="${trial?30:500}" value="30"></div>
    <div><label for="nh">Horas abierta</label><input id="nh" type="number" min="1" max="720" value="24"></div>
    <div><label>Tiempo límite (min : seg)</label><div class="row"><input id="tmin" type="number" min="0" max="1440" value="10" style="width:80px" aria-label="Minutos"><b>:</b><input id="tsec" type="number" min="0" max="59" value="0" style="width:80px" aria-label="Segundos"></div><p class="small mute" id="tlh"></p></div></div>
   ${trial?'':'<label class="row" style="color:var(--ink);font-weight:500"><input type="checkbox" id="ntm"> Modo de equipos</label>'}
   <div class="row" style="margin-top:12px"><button class="btn" id="mk">Crear sala</button></div></section>`;
   const sync=()=>{const m=$('input[name=md]:checked').value;$('#maxw').hidden=m==='invite';
-    $('#tlh').textContent='0:00 = sin límite. '+(m==='invite'?'Corre por persona desde que abre su enlace.':'Corre desde que arranca la sala.')};
+    $('#tlh').textContent='0:00 = sin límite. Corre para todos desde que arranca la evaluación y se detiene solo cuando todos terminan.'};
   $$('input[name=md]').forEach(i=>i.onchange=sync);sync();
   $('#mk').onclick=async()=>{
     const md=$('input[name=md]:checked').value,lim=(+$('#tmin').value||0)*60+(+$('#tsec').value||0);
@@ -340,25 +419,21 @@ async function projView(id){
   if(error||!room){app.innerHTML='<div class="card">Sala no encontrada.</div>';return}
   const ev=(await sb.from('evaluations').select('title').eq('id',room.evaluation_id).single()).data||{title:''};
   PJ={room,n:0};const url=link(room.code);
-  app.innerHTML=`<div class="row noprint"><a href="#/t/res/${room.id}" class="btn sec sm" style="text-decoration:none">← Panel</a><button class="btn sec sm" data-act="fs">Pantalla completa</button></div>
+  app.innerHTML=`<div class="row noprint"><a href="#/t/res/${room.id}" class="btn sec sm" style="text-decoration:none">← Panel</a><button class="btn sec sm" data-act="fs">Pantalla completa</button><span class="small mute">Consejo: conecta el PC al proyector o TV, pulsa “Pantalla completa” y deja el panel abierto en otra pestaña.</span></div>
   <section class="card proj"><h1>${esc(ev.title)}</h1>
-   <div id="pqr"><div class="mute">Escanea para entrar</div><div class="qr">${qrSvg(url)||'<p class="mute">No se pudo generar el QR. Comparte el enlace.</p>'}</div><div class="code">${esc(room.code)}</div><div class="mute small">${esc(url)}</div></div>
-   <div class="big" id="pc" style="margin-top:8px"></div><div id="pst" class="mute"></div><div class="cd" id="pcd"></div></section>`;
+   <div class="grid g2" style="align-items:center"><div id="pqr"><div class="mute">Escanea para entrar</div><div class="qr">${qrSvg(url)||'<p class="mute">No se pudo generar el QR. Comparte el enlace.</p>'}</div><div class="code">${esc(room.code)}</div><div class="mute small">${esc(url)}</div></div>
+   <div>${ringHtml('pring',clockOf(room),true)}<div class="big" id="pc" style="margin-top:8px"></div><div id="pst" class="mute"></div></div></div></section>`;
   const upd=async()=>{const [r,c]=await Promise.all([sb.from('rooms').select('*').eq('id',id).single(),sb.from('participants').select('id',{count:'exact',head:true}).eq('room_id',id)]);
     if(r.data)PJ.room=r.data;PJ.n=c.count??0;paintProj()};
-  await upd();POLL=setInterval(upd,2000);TOT=setInterval(paintProj,500);
+  await upd();POLL=setInterval(upd,2000);TOT=setInterval(paintProj,1000);
 }
 function paintProj(){
   const r=PJ?.room;if(!r||!$('#pc'))return;
-  const live=r.status==='open'&&new Date(r.expires_at)>Date.now(),started=!!r.started_at,end=r.ends_at?new Date(r.ends_at).getTime():null;
-  $('#pc').textContent=PJ.n+' / '+r.max_participants;
+  const live=r.status==='open'&&new Date(r.expires_at)>Date.now(),started=!!r.started_at;
+  $('#pc').textContent=PJ.n+' / '+r.max_participants+' participantes';
   $('#pqr').hidden=started||!live||PJ.n>=r.max_participants;
-  let st='',cd='';
-  if(!live)st='Sala cerrada';
-  else if(!started)st='Esperando participantes… escanea el QR';
-  else if(end){const left=(end-Date.now())/1000;cd=mmss(left);st=left>0?'¡Evaluación en curso! Tiempo restante':'Tiempo terminado'}
-  else st='¡Evaluación en curso!';
-  $('#pst').textContent=st;$('#pcd').textContent=cd;
+  $('#pst').textContent=!live?'Sala cerrada':r.stopped_at?'¡Todos terminaron! Gracias por participar.':!started?'Esperando participantes… escanea el QR':'¡Evaluación en curso!';
+  setRing('pring',clockOf(r));
 }
 
 /* ---------- editor ---------- */
@@ -451,63 +526,75 @@ async function resultsView(roomId){
   const [ev,qs]=await Promise.all([sb.from('evaluations').select('title,layers,competencies').eq('id',rm.data.evaluation_id).single(),sb.from('questions').select('id,prompt,type,options,competency,position').eq('evaluation_id',rm.data.evaluation_id).order('position')]);
   RS.ev=ev.data;RS.qs=qs.data||[];await refreshRes();
   RT=sb.channel('res'+roomId).on('postgres_changes',{event:'*',schema:'public',table:'attempts',filter:'room_id=eq.'+roomId},()=>{clearTimeout(RS.d);RS.d=setTimeout(refreshRes,700)}).subscribe();
-  POLL=setInterval(refreshRes,15000);TOT=setInterval(tickPanel,1000);
+  POLL=setInterval(refreshRes,6000);TOT=setInterval(tickPanel,1000);
 }
 async function refreshRes(){
   if(!RS)return;
-  const [p,a,r]=await Promise.all([sb.from('participants').select('id,name,team,summary,joined_at,finished_at,email,invited,started_at,token').eq('room_id',RS.room.id).order('joined_at'),sb.from('attempts').select('*').eq('room_id',RS.room.id).eq('finalized',true),sb.from('rooms').select('*').eq('id',RS.room.id).single()]);
-  RS.ps=p.data||[];RS.at=a.data||[];if(r.data)RS.room=r.data;
+  const [p,a,r]=await Promise.all([sb.from('participants').select('id,name,team,summary,joined_at,finished_at,email,invited,started_at,token,phone').eq('room_id',RS.room.id).order('joined_at'),sb.from('attempts').select('*').eq('room_id',RS.room.id).eq('finalized',true),sb.from('rooms').select('*').eq('id',RS.room.id).single()]);
+  RS.ps=p.data||[];RS.at=a.data||[];if(r.data){if(RS.room.started_at&&!RS.room.stopped_at&&r.data.stopped_at&&!RS.manualStop)toast('Todos terminaron: el reloj se detuvo solo.');RS.room=r.data}
   const ae=document.activeElement;
   if(ae&&app.contains(ae)&&ae.matches('input,textarea,select'))return; // no borrar lo que el docente está escribiendo
   drawRes();
 }
 function roomState(room){
   const now=Date.now(),live=room.status==='open'&&new Date(room.expires_at)>now;
+  if(room.stopped_at)return{t:'Terminada',c:'ok'};
   if(!live)return{t:'Cerrada',c:'bad'};
-  if(room.mode==='invite')return{t:'Abierta a invitados',c:'ok'};
-  if(!room.started_at)return{t:'En espera (lobby)',c:'warn'};
+  if(!room.started_at)return{t:room.mode==='invite'?'Esperando invitados':'En espera (lobby)',c:'warn'};
   if(room.ends_at&&new Date(room.ends_at)<=now)return{t:'Tiempo terminado',c:'bad'};
   return{t:'En curso',c:'ok'};
 }
-function pstatus(p,at){
+function pstatus(p,at,room){
   if(p.finished_at)return{t:'Terminó',c:'ok'};
-  if(p.started_at||at.some(a=>a.participant_id===p.id))return{t:'En curso',c:'warn'};
+  if(at.some(a=>a.participant_id===p.id)||(p.started_at&&room?.started_at))return{t:'En curso',c:'warn'};
+  if(p.started_at)return{t:'Entró, esperando',c:'warn'};
   return{t:'No ha entrado',c:'bad'};
 }
 function ctlHtml(){
-  const {room,ps}=RS,st=roomState(room),live=st.t!=='Cerrada';
+  const {room,ps}=RS,st=roomState(room),live=room.status==='open'&&new Date(room.expires_at)>Date.now();
   const lim=room.time_limit_sec||0,m=Math.floor(lim/60),sc=lim%60;
-  return `<section class="card noprint"><div class="row"><h2 style="margin:0">Control de sala</h2><span class="chip">${MODE[room.mode]||'Enlace'}</span><span class="chip ${st.c}">${st.t}</span><span class="chip">${ps.length} / ${room.max_participants}</span>
-   <div class="row sp">${room.mode==='qr'?`<a class="btn sm" href="#/t/proj/${room.id}" target="_blank" rel="noopener" style="text-decoration:none">📺 Proyectar</a>`:''}
-   ${room.mode!=='invite'&&!room.started_at&&live?'<button class="btn ok sm" data-act="startroom">▶ Iniciar ahora</button>':''}
+  const inv=ps.filter(p=>p.invited),inN=inv.filter(p=>p.started_at).length;
+  const count=room.mode==='invite'?`${inN} / ${inv.length} entraron`:`${ps.length} / ${room.max_participants}`;
+  const canStart=live&&!room.started_at&&(room.mode!=='invite'||inN>0);
+  const startLbl=room.mode==='invite'&&inv.length&&inN<inv.length?`▶ Iniciar ahora (faltan ${inv.length-inN})`:'▶ Iniciar ahora';
+  return `<section class="card noprint"><div class="row"><h2 style="margin:0">Control de sala</h2><span class="chip">${MODE[room.mode]||'Enlace'}</span><span class="chip ${st.c}">${st.t}</span><span class="chip">${count}</span>
+   <div class="row sp">${room.mode==='qr'&&live&&!room.stopped_at?`<a class="btn sm pconly" href="#/t/proj/${room.id}" target="_blank" rel="noopener" style="text-decoration:none">📺 Proyectar QR</a><span class="small mute mobonly">Para proyectar el QR abre este panel desde un PC.</span>`:''}
+   ${canStart?`<button class="btn ok sm" data-act="startroom">${startLbl}</button>`:''}
+   ${live&&room.started_at&&!room.stopped_at?'<button class="btn sm" data-act="stoproom" style="background:var(--warn)">⏹ Detener reloj</button>':''}
    ${live?'<button class="btn bad sm" data-act="closeroom">Cerrar sala</button>':''}</div></div>
-   <div class="grid g2" style="margin-top:8px"><div><div class="small mute" id="cdl"></div><div class="cd" id="cd" data-end="${room.ends_at||''}" data-start="${room.started_at||''}" data-lim="${lim}" data-mode="${room.mode}" data-live="${live?1:0}"></div></div>
-   <div><label>Tiempo límite ${room.mode==='invite'?'por persona':'de la evaluación'} (min : seg)</label><div class="row"><input id="smin" type="number" min="0" max="1440" value="${m}" style="width:80px" aria-label="Minutos"><b>:</b><input id="ssec" type="number" min="0" max="59" value="${sc}" style="width:80px" aria-label="Segundos"><button class="btn sec sm" data-act="settime">Guardar</button></div>
-   <p class="small mute">0:00 = sin límite. ${room.mode==='invite'?'Corre desde que cada persona abre su enlace.':'Si la sala ya inició, el cambio recalcula el fin.'}</p></div></div>
+   <div class="grid g2" style="margin-top:8px;align-items:center"><div>${ringHtml('cring',clockOf(room))}</div>
+   <div><label>Tiempo límite de la evaluación (min : seg)</label><div class="row"><input id="smin" type="number" min="0" max="1440" value="${m}" style="width:80px" aria-label="Minutos"><b>:</b><input id="ssec" type="number" min="0" max="59" value="${sc}" style="width:80px" aria-label="Segundos"><button class="btn sec sm" data-act="settime" ${room.stopped_at?'disabled':''}>Guardar</button></div>
+   <p class="small mute">0:00 = sin límite. Si la evaluación ya inició, el cambio recalcula el final. El reloj se detiene solo cuando todos los que entraron terminan.${room.mode==='invite'?' Arranca automáticamente cuando entran todos los invitados; si falta alguien, puedes iniciarla tú.':''}</p></div></div>
    ${room.mode==='invite'?inviteHtml():''}</section>`;
 }
-function tickPanel(){
-  const el=$('#cd');if(!el)return;
-  const mode=el.dataset.mode,lim=+el.dataset.lim,end=el.dataset.end,live=el.dataset.live==='1',lab=$('#cdl');
-  let t='—',l='';
-  if(!live)l='Sala cerrada';
-  else if(mode==='invite'){t=lim?mmss(lim):'Sin límite';l=lim?'Límite por persona':'Sin límite de tiempo'}
-  else if(end){const left=(new Date(end)-Date.now())/1000;t=mmss(left);l=left>0?'Tiempo restante':'Tiempo terminado'}
-  else if(el.dataset.start){t='Sin límite';l='En curso'}
-  else{t=lim?mmss(lim):'Sin límite';l='Esperando inicio · tiempo límite'}
-  el.textContent=t;if(lab)lab.textContent=l;
+function tickPanel(){if(RS?.room)setRing('cring',clockOf(RS.room))}
+function sendBox(){
+  const S=RS.send;if(!S)return'';
+  if(!S.ch)return`<div class="fb story" style="margin:10px 0"><b>Enviar invitaciones</b><p class="small">Se abrirá tu correo o WhatsApp con el mensaje listo, una persona tras otra. Tú solo pulsas enviar en cada una.</p>
+    <label class="row" style="color:var(--ink);font-weight:500"><input type="checkbox" id="spend" ${S.pend?'checked':''}> Solo a quienes aún no han entrado</label>
+    <div class="row" style="margin-top:6px"><button class="btn sm" data-act="sendch" data-v="mail">✉️ Por correo</button><button class="btn sm" data-act="sendch" data-v="wa">💬 Por WhatsApp</button><button class="btn sec sm" data-act="sendx">Cancelar</button></div></div>`;
+  const n=S.ids.length,p=RS.ps.find(x=>x.id===S.ids[S.i]),ch=S.ch==='mail'?'correo':'WhatsApp';
+  if(!p)return`<div class="fb ok" style="margin:10px 0"><b>✅ Secuencia terminada.</b> Abriste ${S.sent} mensaje(s) por ${ch}. <button class="btn sec sm" data-act="sendx">Cerrar</button></div>`;
+  const first=(p.name||'').split(' ')[0]||'esta persona';
+  return`<div class="fb story" style="margin:10px 0"><div class="row"><b>Enviando por ${ch}: ${S.i+1} de ${n}</b><span class="sp small mute">${S.sent} abierto(s)</span></div>
+   <div class="bar" style="margin:6px 0"><i style="width:${Math.round(S.i/n*100)}%"></i></div>
+   <p style="margin:4px 0"><b>${esc(p.name||'Sin nombre')}</b> <span class="small mute">${esc(S.ch==='mail'?p.email:(p.phone?'+'+p.phone:'sin celular: elegirás el contacto en WhatsApp'))}</span></p>
+   <div class="row"><button class="btn sm" data-act="sendone">Abrir ${ch} para ${esc(first)}</button><button class="btn sec sm" data-act="sendskip">Saltar</button><button class="btn sec sm" data-act="sendx">Terminar</button></div></div>`;
 }
 function inviteHtml(){
-  const {ps,at,ev}=RS,inv=ps.filter(p=>p.invited).sort((a,b)=>(a.name||a.email||'').localeCompare(b.name||b.email||''));
-  const cnt={t:0,e:0,n:0};inv.forEach(p=>{const s=pstatus(p,at).t;if(s==='Terminó')cnt.t++;else if(s==='En curso')cnt.e++;else cnt.n++});
-  const rows=inv.map(p=>{const s=pstatus(p,at),l=invLink(p.token),mt=inviteMsg(p,ev.title,l);
-    return`<tr><td>${esc(p.name||'—')}</td><td>${esc(p.email||'—')}</td><td><span class="chip ${s.c}">${s.t}</span></td><td class="row"><button class="btn sec sm" data-act="copy" data-v="${esc(l)}">Copiar</button>${p.email?`<a class="btn sec sm" style="text-decoration:none" href="mailto:${esc(p.email)}?subject=${encodeURIComponent(ev.title)}&body=${encodeURIComponent(mt)}">Correo</a>`:''}<a class="btn sec sm" style="text-decoration:none" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(mt)}">WhatsApp</a>${s.t==='No ha entrado'?`<button class="btn bad sm" data-act="rminv" data-id="${p.id}" aria-label="Quitar invitado">✕</button>`:''}</td></tr>`}).join('');
+  const {ps,at,ev,room}=RS,inv=ps.filter(p=>p.invited).sort((a,b)=>(a.name||a.email||'').localeCompare(b.name||b.email||''));
+  const cnt={t:0,e:0,n:0};inv.forEach(p=>{const s=pstatus(p,at,room).t;if(s==='Terminó')cnt.t++;else if(s==='No ha entrado')cnt.n++;else cnt.e++});
+  const rows=inv.map(p=>{const s=pstatus(p,at,room),l=invLink(p.token),mt=inviteMsg(p,ev.title,l);
+    return`<tr><td>${esc(p.name||'—')}</td><td>${esc(p.email||'')}${p.email&&p.phone?'<br>':''}${p.phone?'+'+esc(p.phone):''}${!p.email&&!p.phone?'—':''}</td><td><span class="chip ${s.c}">${s.t}</span></td><td class="row"><button class="btn sec sm" data-act="copy" data-v="${esc(l)}">Copiar</button>${p.email?`<a class="btn sec sm" style="text-decoration:none" href="${esc(mailLink(p,ev.title,mt))}">Correo</a>`:''}<a class="btn sec sm" style="text-decoration:none" target="_blank" rel="noopener" href="${esc(waLink(p,mt))}">WhatsApp</a>${s.t==='No ha entrado'?`<button class="btn bad sm" data-act="rminv" data-id="${p.id}" aria-label="Quitar invitado">✕</button>`:''}</td></tr>`}).join('');
   return`<hr style="border:0;border-top:1px solid var(--line);margin:12px 0"><h3>Invitados</h3>
-   <label for="invtxt">Pega una lista (un invitado por línea: <i>Nombre, correo</i>; sirve copiar desde Excel) o sube un archivo CSV o TXT</label>
-   <textarea id="invtxt" placeholder="Ana Pérez, ana@empresa.com&#10;Luis Gómez, luis@empresa.com"></textarea>
-   <div class="row" style="margin-top:6px"><button class="btn sm" data-act="addinv">Añadir invitados</button><input type="file" id="invfile" accept=".csv,.txt,text/csv,text/plain" style="width:auto" aria-label="Subir archivo"></div>
-   ${inv.length?`<div class="row small" style="margin:10px 0"><span class="chip ok">Terminaron ${cnt.t}</span><span class="chip warn">En curso ${cnt.e}</span><span class="chip bad">Sin entrar ${cnt.n}</span><span class="sp row"><button class="btn sec sm" data-act="copyall">Copiar enlaces</button><button class="btn sec sm" data-act="copypend">Copiar pendientes</button><button class="btn sec sm" data-act="csvinv">CSV de invitados</button></span></div>
-   <table><tr><th>Nombre</th><th>Correo</th><th>Estado</th><th>Enviar</th></tr>${rows}</table>`:'<p class="mute small">Aún no hay invitados.</p>'}`;
+   <div class="grid g2"><div><label for="invfile">1 · Desde una hoja de cálculo de tu equipo (Excel, CSV u ODS)</label><input type="file" id="invfile" accept=".xlsx,.xls,.ods,.csv,.txt,text/csv,text/plain"></div>
+   <div><label for="invurl">2 · Desde Google Drive (pega el enlace compartido)</label><div class="row" style="flex-wrap:nowrap"><input id="invurl" type="url" placeholder="https://docs.google.com/spreadsheets/d/…"><button class="btn sec sm" data-act="drive">Cargar</button></div><p class="small mute" style="margin:3px 0 0">Comparte la hoja como “Cualquier persona con el enlace”.</p></div></div>
+   <label for="invtxt">3 · O pega la lista aquí (una persona por línea: nombre, correo y/o celular; sirve copiar desde Excel)</label>
+   <textarea id="invtxt" placeholder="Ana Pérez, ana@empresa.com, 3001234567&#10;Luis Gómez, luis@empresa.com"></textarea>
+   <p class="small mute" style="margin:3px 0 0">Si tu hoja tiene encabezados, uso las columnas Nombre, Apellido, Correo y Celular; las demás se ignoran. Revisa la lista antes de añadir.</p>
+   <div class="row" style="margin-top:6px"><button class="btn sm" data-act="addinv">Añadir invitados</button></div>
+   ${inv.length?`<div class="row small" style="margin:10px 0"><span class="chip ok">Terminaron ${cnt.t}</span><span class="chip warn">Entraron ${cnt.e}</span><span class="chip bad">Sin entrar ${cnt.n}</span><span class="sp row">${RS.send?'':'<button class="btn sm" data-act="sendstart">📨 Enviar invitaciones</button>'}<button class="btn sec sm" data-act="copyall">Copiar enlaces</button><button class="btn sec sm" data-act="copypend">Copiar pendientes</button><button class="btn sec sm" data-act="csvinv">CSV de invitados</button></span></div>
+   ${sendBox()}<table><tr><th>Nombre</th><th>Contacto</th><th>Estado</th><th>Enviar</th></tr>${rows}</table>`:'<p class="mute small">Aún no hay invitados.</p>'}`;
 }
 const pstats=(p,at)=>{const r=at.filter(a=>a.participant_id===p.id);const s=r.reduce((x,a)=>x+Number(a.score),0),c=r.reduce((x,a)=>x+Number(a.calib),0);return{n:r.length,score:s,calib:c,total:Math.max(0,s+c),hints:r.reduce((x,a)=>x+a.hints_used,0),ok:r.filter(a=>a.correct).length}};
 const compProfile=at=>{const m={};at.forEach(a=>{const c=a.competency||'General';(m[c]??={s:0,n:0});m[c].s+=Number(a.score);m[c].n++});return Object.entries(m).map(([name,v])=>({name,pct:Math.round(v.s/(v.n*10)*100)}))};
@@ -534,12 +621,64 @@ function drawRes(){
 }
 const ansText=(q,a)=>q.type==='short'?(a?.text||''):(q.options?.[a?.index]??'');
 const csvCell=v=>{let s=String(v??'');if(/^[=+\-@\t\r]/.test(s))s="'"+s;return /[",\n;]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s};
-function exportCsv(){
-  const {room,ps,at,qs,ev}=RS;const pm=new Map(ps.map((p,i)=>[p.id,{...p,i}])),qm=new Map(qs.map((q,i)=>[q.id,{...q,i}]));
-  const head=['sala','evaluacion','participante','correo','equipo','n_pregunta','pregunta','competencia','respuesta','confianza','pistas','intentos','tiempo_s','correcto','puntaje','calibracion','fecha'];
-  const rows=at.map(a=>{const p=pm.get(a.participant_id),q=qm.get(a.question_id);return[room.code,ev.title,p?.name||'Anónimo '+((p?.i??0)+1),p?.email||'',p?.team||'',(q?.i??0)+1,q?.prompt||'',a.competency||'',q?ansText(q,a.answer):'',a.confidence??'',a.hints_used,a.tries,Math.round((a.time_ms||0)/1000),a.correct?'sí':'no',a.score,a.calib,a.updated_at]});
-  const csv='﻿'+[head,...rows].map(r=>r.map(csvCell).join(',')).join('\r\n');
-  const u=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));const l=document.createElement('a');l.href=u;l.download=`resultados_${room.code}.csv`;l.click();setTimeout(()=>URL.revokeObjectURL(u),2000);
+const CSV_HEAD=['sala','evaluacion','participante','correo','celular','equipo','n_pregunta','pregunta','competencia','respuesta','confianza','pistas','intentos','tiempo_s','correcto','puntaje','calibracion','fecha'];
+function resultRows(room,ev,qs,ps,at){
+  const pm=new Map(ps.map((p,i)=>[p.id,{...p,i}])),qm=new Map(qs.map((q,i)=>[q.id,{...q,i}]));
+  return at.map(a=>{const p=pm.get(a.participant_id),q=qm.get(a.question_id);return[room.code,ev?.title||'',p?.name||'Anónimo '+((p?.i??0)+1),p?.email||'',p?.phone||'',p?.team||'',(q?.i??0)+1,q?.prompt||'',a.competency||'',q?ansText(q,a.answer):'',a.confidence??'',a.hints_used,a.tries,Math.round((a.time_ms||0)/1000),a.correct?'sí':'no',a.score,a.calib,a.updated_at]});
+}
+function exportCsv(){const {room,ps,at,qs,ev}=RS;downloadCsv(`resultados_${room.code}.csv`,[CSV_HEAD,...resultRows(room,ev,qs,ps,at)])}
+async function exportRooms(ids){
+  const {data:rooms,error}=await sb.from('rooms').select('*').in('id',ids);if(error)throw error;
+  const evIds=[...new Set(rooms.map(r=>r.evaluation_id))];
+  const [ev,qs,ps,at]=await Promise.all([sb.from('evaluations').select('id,title').in('id',evIds),sb.from('questions').select('id,evaluation_id,prompt,type,options,competency,position').in('evaluation_id',evIds).order('position'),
+    sb.from('participants').select('id,room_id,name,team,email,phone,joined_at').in('room_id',ids).order('joined_at'),sb.from('attempts').select('*').in('room_id',ids).eq('finalized',true)]);
+  for(const x of [ev,qs,ps,at])if(x.error)throw x.error;
+  const rows=rooms.flatMap(r=>resultRows(r,ev.data.find(e=>e.id===r.evaluation_id),qs.data.filter(q=>q.evaluation_id===r.evaluation_id),ps.data.filter(p=>p.room_id===r.id),at.data.filter(a=>a.room_id===r.id)));
+  downloadCsv(rooms.length===1?`resultados_${rooms[0].code}.csv`:`resultados_${rooms.length}_salas_${new Date().toISOString().slice(0,10)}.csv`,[CSV_HEAD,...rows]);
+}
+function askDelete(n){
+  return new Promise(res=>{const d=document.createElement('div');d.className='modal';
+    d.innerHTML=`<div class="card" role="dialog" aria-modal="true" aria-labelledby="mdt" style="max-width:440px;margin:0"><h2 id="mdt">${n>1?`Eliminar ${n} salas terminadas`:'Eliminar sala'}</h2>
+     <p>Se borrarán ${n>1?'las salas':'la sala'} con todos sus participantes y resultados. Esto no se puede deshacer.</p><p><b>¿Quieres guardar los resultados antes de eliminar?</b></p>
+     <div class="row"><button class="btn" data-m="export">Exportar CSV y eliminar</button><button class="btn bad" data-m="delete">Eliminar sin exportar</button><button class="btn sec" data-m="">Cancelar</button></div></div>`;
+    const done=v=>{d.remove();res(v)};
+    d.addEventListener('click',e=>{const b=e.target.closest('[data-m]');if(b)done(b.dataset.m);else if(e.target===d)done('')});
+    d.addEventListener('keydown',e=>{if(e.key==='Escape')done('')});
+    document.body.appendChild(d);d.querySelector('[data-m=export]').focus()});
+}
+
+/* ================= AVISO LEGAL ================= */
+function legalView(){
+  const o=esc(CFG.OWNER||'[Nombre o razón social del responsable]'),nit=esc(CFG.NIT||'[NIT]'),em=esc(CFG.EMAIL||'[correo de contacto]'),city=esc(CFG.CITY||'[ciudad]'),app_=esc(CFG.APP);
+  app.innerHTML=`<section class="card legal"><h1>Aviso de privacidad y términos de uso de ${app_}</h1><p class="small mute">Última actualización: ${esc(CFG.UPDATED)}</p>
+  <h2>1. Quién es quién</h2>
+  <p><b>${app_}</b> es una plataforma de evaluaciones interactivas operada por ${o}, ${nit}, con domicilio en ${city}, Colombia. Contacto: ${em}.</p>
+  <p>Cada <b>organizador</b> (docente, institución educativa o empresa) crea sus evaluaciones y decide a quién evaluar y con qué fin. Frente a los datos de sus participantes, el organizador es el <b>responsable del tratamiento</b> y ${app_} actúa como <b>encargado</b>: trata los datos por cuenta del organizador y según sus instrucciones, conforme a la Ley 1581 de 2012 y el Decreto 1377 de 2013.</p>
+  <h2>2. Usos de la plataforma</h2>
+  <ul><li>Evaluaciones en aulas y repasos académicos.</li><li>Evaluaciones al cierre de capacitaciones presenciales o virtuales (por ejemplo, después de una sesión en Zoom, Google Meet u otras plataformas).</li><li>Formación, certificación interna y <b>pruebas de ingreso o selección de personal</b> en empresas.</li></ul>
+  <h2>3. Datos que se tratan</h2>
+  <ul><li><b>Organizadores:</b> correo, nombre de la institución o empresa y datos de uso de la cuenta.</li>
+  <li><b>Participantes:</b> nombre (opcional en salas abiertas), correo y/o número de celular cuando el organizador los carga en una lista de invitados, equipo, respuestas, nivel de confianza declarado, pistas usadas, tiempos y resultados.</li>
+  <li><b>Técnicos:</b> fecha y hora de ingreso y datos mínimos de funcionamiento. No usamos cookies publicitarias ni vendemos datos.</li></ul>
+  <h2>4. Para qué se usan</h2>
+  <p>Para entregar la evaluación, calificarla, generar retroalimentación, mostrar resultados al organizador y permitirle exportarlos. En pruebas de ingreso laboral, los resultados son <b>un insumo</b> para el proceso del organizador: ${app_} no toma decisiones de contratación. El organizador debe informar a los candidatos la finalidad de la prueba, obtener su autorización cuando la ley lo exija y no usar los resultados con fines discriminatorios.</p>
+  <h2>5. Inteligencia artificial</h2>
+  <p>Algunas funciones (pistas, retroalimentación y resúmenes) envían el texto de las preguntas y de las respuestas a un proveedor de IA (Anthropic) para generar el comentario. Los resúmenes de grupo se envían sin nombres. No se envían correos ni celulares.</p>
+  <h2>6. Dónde se guardan y por cuánto tiempo</h2>
+  <p>Los datos se almacenan en servidores de Supabase, que pueden estar fuera de Colombia, con medidas de seguridad razonables. Se conservan mientras el organizador mantenga la sala. El organizador puede eliminar en cualquier momento una sala con todos sus resultados; al eliminar la cuenta se borran sus evaluaciones y salas.</p>
+  <h2>7. Derechos del titular</h2>
+  <p>Como participante puedes conocer, actualizar, rectificar y pedir la supresión de tus datos, y revocar tu autorización. Dirígete primero al organizador que te invitó; si no lo logras, escribe a ${em} y trasladaremos tu solicitud. Atendemos consultas en máximo 10 días hábiles y reclamos en máximo 15 días hábiles. También puedes acudir a la Superintendencia de Industria y Comercio.</p>
+  <h2>8. Menores de edad</h2>
+  <p>Si los participantes son menores de edad, la institución organizadora debe contar con la autorización de sus padres o representantes, y solo se tratarán los datos necesarios para la actividad educativa.</p>
+  <h2>9. Términos de uso</h2>
+  <ul><li>La prueba gratuita dura 7 días, no requiere tarjeta e incluye herramientas limitadas. Después, las funciones se activan con un plan de pago.</li>
+  <li>El organizador es responsable del contenido de sus evaluaciones, de contar con los permisos para cargar datos de terceros (listas de invitados) y de enviar las invitaciones por sus propios canales (correo o WhatsApp).</li>
+  <li>Está prohibido usar la plataforma para recoger datos sensibles innecesarios, suplantar a otras personas o hacer envíos masivos no autorizados (spam).</li>
+  <li>Los enlaces personales de invitación son intransferibles.</li>
+  <li>Hacemos lo posible por mantener el servicio disponible, pero puede haber interrupciones. Exporta tus resultados con regularidad.</li>
+  <li>Las retroalimentaciones generadas con IA son orientativas y pueden contener errores; la calificación oficial depende de las respuestas configuradas por el organizador.</li>
+  <li>Podemos actualizar este aviso; la fecha de actualización aparece arriba.</li></ul>
+  <div class="row noprint" style="margin-top:12px"><button class="btn sec" onclick="history.length>1?history.back():go('#/')">Volver</button></div></section>`;
 }
 
 /* ================= EVENTOS GLOBALES ================= */
@@ -562,21 +701,39 @@ document.addEventListener('click',async e=>{
   else if(a==='detail'){RS.sel=t.dataset.id;drawRes();$('main').scrollTo?.(0,0)}
   else if(a==='csv')exportCsv();
   else if(a==='fs')document.documentElement.requestFullscreen?.();
+  else if(a==='delrooms'){const ids=t.dataset.ids.split(',').filter(Boolean);const ch=await askDelete(ids.length);if(!ch)return;
+    try{if(ch==='export')await exportRooms(ids);const r=await sb.from('rooms').delete().in('id',ids);if(r.error)throw r.error;toast(ids.length>1?ids.length+' salas eliminadas':'Sala eliminada')}catch(x){toast(msg(x))}dashView()}
+  else if(a==='stoproom'){if(confirm('¿Detener el reloj? La evaluación termina para todos ahora mismo; las respuestas ya enviadas quedan guardadas.')){RS.manualStop=true;const r=await sb.rpc('stop_room',{p_room:RS.room.id});if(r.error)toast(msg(r.error));else toast('Reloj detenido');await refreshRes()}}
+  else if(a==='sendstart'){RS.send={ch:null,pend:true,i:0,sent:0,ids:[]};drawRes()}
+  else if(a==='sendch'){const S=RS.send;S.pend=!!$('#spend')?.checked;S.ch=t.dataset.v;
+    S.ids=RS.ps.filter(p=>p.invited&&(!S.pend||(!p.started_at&&!p.finished_at))&&(S.ch!=='mail'||p.email)).sort((x,y)=>(x.name||'').localeCompare(y.name||'')).map(p=>p.id);
+    if(!S.ids.length){RS.send=null;toast(S.ch==='mail'?'No hay invitados pendientes con correo.':'No hay invitados pendientes.')}drawRes()}
+  else if(a==='sendone'){const S=RS.send,p=RS.ps.find(x=>x.id===S.ids[S.i]);if(p){const mt=inviteMsg(p,RS.ev.title,invLink(p.token));
+    if(S.ch==='mail')location.href=mailLink(p,RS.ev.title,mt);else window.open(waLink(p,mt),'_blank','noopener');S.sent++}S.i++;drawRes()}
+  else if(a==='sendskip'){RS.send.i++;drawRes()}
+  else if(a==='sendx'){RS.send=null;drawRes()}
+  else if(a==='drive'){const u=$('#invurl').value.trim();if(!u)return toast('Pega el enlace de la hoja.');t.disabled=true;
+    try{const r=await api('sheet',{url:u},true);const b=Uint8Array.from(atob(r.b64),c=>c.charCodeAt(0));
+      const rows=(b[0]===0x50&&b[1]===0x4b)||/sheet|excel|opendocument/.test(r.type)?await sheetRows(b):csvRows(new TextDecoder().decode(b));
+      appendInvText(rowsToInvites(rows));$('#invurl').value=''}catch(x){toast(msg(x))}t.disabled=false}
   else if(a==='startroom'){const r=await sb.rpc('start_room',{p_room:RS.room.id});if(r.error)toast(msg(r.error));else{toast('Evaluación iniciada');await refreshRes()}}
   else if(a==='closeroom'){if(confirm('¿Cerrar la sala? Nadie más podrá responder.')){await sb.from('rooms').update({status:'closed'}).eq('id',RS.room.id);await refreshRes()}}
   else if(a==='settime'){const sec=(+$('#smin').value||0)*60+(+$('#ssec').value||0);const r=await sb.rpc('set_room_time',{p_room:RS.room.id,p_seconds:sec});if(r.error)toast(msg(r.error));else{toast('Tiempo actualizado');document.activeElement?.blur();await refreshRes()}}
   else if(a==='addinv'){const list=parseInvites($('#invtxt').value);if(!list.length)return toast('No encontré invitados en el texto.');
     const r=await sb.rpc('create_invites',{p_room:RS.room.id,p_list:list});if(r.error)return toast(msg(r.error));
     RS.draft='';$('#invtxt').value='';toast(r.data+' invitado(s) añadido(s)'+(r.data<list.length?' (el resto estaba repetido o superó el límite)':''));document.activeElement?.blur();await refreshRes()}
-  else if(a==='copyall')copyText(RS.ps.filter(p=>p.invited).map(p=>[p.name||'',p.email||'',invLink(p.token)].join('\t')).join('\n'));
-  else if(a==='copypend')copyText(RS.ps.filter(p=>p.invited&&!p.finished_at).map(p=>[p.name||'',p.email||'',invLink(p.token)].join('\t')).join('\n'));
-  else if(a==='csvinv')downloadCsv('invitados_'+RS.room.code+'.csv',[['nombre','correo','enlace','estado'],...RS.ps.filter(p=>p.invited).map(p=>[p.name||'',p.email||'',invLink(p.token),pstatus(p,RS.at).t])]);
+  else if(a==='copyall')copyText(RS.ps.filter(p=>p.invited).map(p=>[p.name||'',p.email||'',p.phone||'',invLink(p.token)].join('\t')).join('\n'));
+  else if(a==='copypend')copyText(RS.ps.filter(p=>p.invited&&!p.started_at&&!p.finished_at).map(p=>[p.name||'',p.email||'',p.phone||'',invLink(p.token)].join('\t')).join('\n'));
+  else if(a==='csvinv')downloadCsv('invitados_'+RS.room.code+'.csv',[['nombre','correo','celular','enlace','estado'],...RS.ps.filter(p=>p.invited).map(p=>[p.name||'',p.email||'',p.phone||'',invLink(p.token),pstatus(p,RS.at,RS.room).t])]);
   else if(a==='rminv'){const r=await sb.rpc('remove_invite',{p_participant:t.dataset.id});if(r.error)toast(msg(r.error));await refreshRes()}
   else if(a==='aisum'){t.disabled=true;try{const r=await api('summary',{room_id:RS.room.id},true);RS.ai=r.summary+(r.simulated?'\n\n(Resumen sin IA: configura ANTHROPIC_API_KEY o espera nuevo cupo.)':'');}catch(x){RS.ai=msg(x)}drawRes()}
 });
 document.addEventListener('change',e=>{
   const t=e.target;
-  if(t.id==='invfile'&&t.files[0]){const rd=new FileReader();rd.onload=()=>{const x=$('#invtxt');x.value+=(x.value?'\n':'')+rd.result};rd.readAsText(t.files[0])}
+  if(t.id==='invfile'&&t.files[0]){const f=t.files[0];(async()=>{try{
+      const rows=/\.(xlsx|xls|ods)$/i.test(f.name)?await sheetRows(new Uint8Array(await f.arrayBuffer())):csvRows(await f.text());
+      appendInvText(rowsToInvites(rows))}catch(x){toast(msg(x))}t.value=''})()}
+  if(t.id==='spend'&&RS?.send)RS.send.pend=t.checked;
   if(t.dataset?.act==='qtype'){collect();drawEditor()}
   if(t.dataset?.act==='layer'){collect();drawEditor()}
 });
