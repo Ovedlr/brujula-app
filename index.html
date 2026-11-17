@@ -76,7 +76,7 @@ footer{text-align:center;padding:8px 14px 18px;font-size:11px}footer a{color:var
 <script>
 /* ================= CONFIG ================= */
 const CFG={URL:'https://bclbbulqhffnieysahqr.supabase.co',KEY:'sb_publishable_WWmySdsKUERHqv_3DL0EfQ_kFTZgto9',APP:'Brújula',CONTACT:'',
-  /* Datos del responsable para el aviso legal: complétalos */ OWNER:'',NIT:'',EMAIL:'',CITY:'',UPDATED:'16 de noviembre de 2026'};
+  /* Datos del responsable para el aviso legal: complétalos */ OWNER:'Franky López',NIT:'98643481',EMAIL:'franklr76@gmail.com',CITY:'Bello, Antioquia',UPDATED:'16 de noviembre de 2026'};
 const FN=CFG.URL+'/functions/v1/api';
 document.getElementById('appname').textContent=CFG.APP;
 let sb=null,sbReady=false;
@@ -654,7 +654,7 @@ function askDelete(n){
 
 /* ================= AVISO LEGAL ================= */
 function legalView(){
-  const o=esc(CFG.OWNER||'[Franky Lóez]'),nit=esc(CFG.NIT||'[98643481]'),em=esc(CFG.EMAIL||'[franklr76@gmail.com]'),city=esc(CFG.CITY||'[Bello, Antioquia]'),app_=esc(CFG.APP);
+  const o=esc(CFG.OWNER||'[Nombre o razón social del responsable]'),nit=esc(CFG.NIT||'[NIT]'),em=esc(CFG.EMAIL||'[correo de contacto]'),city=esc(CFG.CITY||'[ciudad]'),app_=esc(CFG.APP);
   app.innerHTML=`<section class="card legal"><h1>Aviso de privacidad y términos de uso de ${app_}</h1><p class="small mute">Última actualización: ${esc(CFG.UPDATED)}</p>
   <h2>1. Quién es quién</h2>
   <p><b>${app_}</b> es una plataforma de evaluaciones interactivas operada por ${o}, ${nit}, con domicilio en ${city}, Colombia. Contacto: ${em}.</p>
